@@ -461,13 +461,15 @@ for (let gx = 0; gx < 8; gx++) {
   }
 }
 
-// Inner floating — more platforms, closer together
+// Inner floating — skip arena zone (y=-15 to y=20) to keep battles visible
 for (let level = 0; level < 15; level++) {
   const y = -50 + level * 7;
+  // Skip the battle arena zone — keep center clear for combat
+  if (y > -15 && y < 20) continue;
   const numInner = 4 + Math.floor(srand() * 4);
   for (let i = 0; i < numInner; i++) {
     const w = 5 + srand() * 8, h = 2 + srand() * 2, d = 3 + srand() * 4;
-    const rx = y > 0 ? Math.PI : 0; // above center = upside down
+    const rx = y > 0 ? Math.PI : 0;
     const rz = srand() > 0.8 ? (srand() - 0.5) * 0.2 : 0;
     const bx = (srand() - 0.5) * SHAFT_W * 1.0;
     const bz = (srand() - 0.5) * SHAFT_D * 1.0;
@@ -2195,28 +2197,45 @@ const EVENT_TOURS = {
   zenitsu: {
     duration: 35,
     getPhase(loop) {
-      const bY = -5; // arena floor
-      if (loop < 4) { // Walk — following from behind
-        const p = loop/4;
-        return { camPos: [-8+p*2,bY+1.5,3], camLook: [-6+p,bY+0.8,0], fov:55, roll:0, showT:true, speed:1 };
-      } if (loop < 7) { // Standoff — wide angle showing both
-        const p = (loop-4)/3;
-        return { camPos: [0,bY+1.5,6-p], camLook: [0,bY+0.8,0], fov:50+p*5, roll:0, showT:true, speed:0.3 };
-      } if (loop < 8) { // Buildup — close-up on Zenitsu, lightning gathering
-        const p = loop-7;
-        return { camPos: [-4,bY+1,2.5-p*0.5], camLook: [-5,bY+0.6,0], fov:45+p*10, roll:p*0.05, showT:true, speed:0.5 };
-      } if (loop < 9.5) { // 화뢰신 DASH — camera tracks the speed dash from side
-        const p = (loop-8)/1.5;
-        return { camPos: [-5+p*13,bY+0.8,3.5], camLook: [-5+p*13,bY+0.6,0], fov:80+p*20, roll:p*0.12, showT:true, speed:6 };
-      } if (loop < 11) { // IMPACT — camera behind Zenitsu's back (classic shot)
-        const p = (loop-9.5)/1.5;
-        return { camPos: [7,bY+1.2,2-p], camLook: [5.5,bY+0.8,0], fov:70-p*15, roll:0, showT:true, speed:1 };
-      } if (loop < 15) { // Aftermath — slow pan out, Zenitsu standing
-        const p = (loop-11)/4;
-        return { camPos: [6+p*2,bY+1.5+p*2,3+p*3], camLook: [6,bY+0.6,0], fov:55, roll:0, showT:true, speed:0.5 };
-      } { // Resolution — pull far out
-        const p = (loop-15)/7;
-        return { camPos: [p*5,bY+3+p*6,6+p*4], camLook: [3,bY+0.5,0], fov:60, roll:0, showT:p<0.6, speed:1.5 };
+      const bY = -5;
+      // Fall (0-3)
+      if (loop < 3) { const p = loop/3; const fY = 30-p*35;
+        return { camPos: [2,fY-3,3], camLook: [0,fY+1,0], fov:80, roll:p*0.15, showT:true, speed:4 };
+      }
+      // Land + Run alone (3-12) — behind camera, tense
+      if (loop < 12) { const p = (loop-3)/9;
+        const runX = (SHAFT_W-3) - p*(SHAFT_W-3+6);
+        return { camPos: [runX-2,bY+1.5,2], camLook: [runX+2,bY+0.8,0], fov:70, roll:0, showT:true, speed:4 };
+      }
+      // Kaigaku appears (12-14) — wide shot both
+      if (loop < 14) { const p = (loop-12)/2;
+        return { camPos: [0,bY+1.5,5], camLook: [0,bY+0.8,0], fov:55+p*5, roll:0, showT:true, speed:0.5 };
+      }
+      // ft = fight time starting from 14
+      const ft = loop - 14;
+      // Standoff (ft 0-3) — side view, both visible
+      if (ft < 3) {
+        return { camPos: [0,bY+1.3,4], camLook: [0,bY+0.8,0], fov:50, roll:0, showT:true, speed:0.3 };
+      }
+      // 화뢰신 buildup (ft 3-4) — close-up on Zenitsu
+      if (ft < 4) { const p = ft-3;
+        return { camPos: [-3,bY+0.8,2], camLook: [-5,bY+0.6,0], fov:45+p*10, roll:p*0.05, showT:true, speed:0.5 };
+      }
+      // 화뢰신 DASH (ft 4-5.5) — side tracking, CLOSE to ground
+      if (ft < 5.5) { const p = (ft-4)/1.5;
+        return { camPos: [-5+p*13,bY+0.6,2.5], camLook: [-5+p*13,bY+0.5,0], fov:85+p*15, roll:p*0.1, showT:true, speed:6 };
+      }
+      // IMPACT (ft 5.5-7) — behind Zenitsu classic shot
+      if (ft < 7) { const p = (ft-5.5)/1.5;
+        return { camPos: [7,bY+1,1.5-p*0.5], camLook: [5,bY+0.7,0], fov:65-p*10, roll:0, showT:true, speed:1 };
+      }
+      // Aftermath (ft 7-11) — slow orbit around standing Zenitsu
+      if (ft < 11) { const p = (ft-7)/4; const a = p*Math.PI*0.5;
+        return { camPos: [6+Math.cos(a)*2,bY+1+p,Math.sin(a)*3], camLook: [6,bY+0.5,0], fov:55, roll:0, showT:true, speed:0.5 };
+      }
+      // Resolution
+      { const p = (ft-11)/10;
+        return { camPos: [4+p*3,bY+2+p*3,4+p*2], camLook: [4,bY+0.5,0], fov:60, roll:0, showT:p<0.6, speed:1 };
       }
     }
   },
