@@ -2274,55 +2274,55 @@ const EVENT_TOURS = {
   crow_eye: {
     duration: 45,
     getPhase(loop) {
-      const W = SHAFT_W - 3;
-      // Camera follows a crow's flight path through the entire castle
-      // Swooping, diving, circling — seeing everything from a bird's POV
+      // Stay in OPEN CENTER of the shaft (±25 max, buildings are at ±30~40)
+      const R = 20; // safe flight radius
 
-      if (loop < 5) { // Start high, circling above
-        const p = loop / 5; const a = p * Math.PI * 0.8;
-        return { camPos: [Math.cos(a)*12, 45-p*5, Math.sin(a)*12], camLook: [Math.cos(a+0.3)*8, 40-p*10, Math.sin(a+0.3)*8], fov:90, roll:Math.sin(a)*0.15, showT:false, speed:3 };
+      if (loop < 5) { // Circle high above center
+        const p = loop/5; const a = p*Math.PI*0.8;
+        return { camPos: [Math.cos(a)*R*0.6, 42-p*5, Math.sin(a)*R*0.6], camLook: [Math.cos(a+0.5)*5, 35-p*10, Math.sin(a+0.5)*5], fov:90, roll:Math.sin(a)*0.12, showT:false, speed:3 };
       }
-      if (loop < 9) { // Dive down along left wall
+      if (loop < 9) { // Dive straight down through center shaft
         const p = (loop-5)/4;
-        const y = 40 - p*50;
-        return { camPos: [-W+2, y, -10+p*15], camLook: [-W+5, y-5, -10+p*20], fov:95, roll:p*0.1, showT:false, speed:5 };
+        const y = 37 - p*70;
+        return { camPos: [Math.sin(p*Math.PI)*R*0.3, y, Math.cos(p*Math.PI)*R*0.3], camLook: [0, y-8, 0], fov:95, roll:p*0.15, showT:false, speed:5.5 };
       }
-      if (loop < 13) { // Skim along bottom, weaving between buildings
+      if (loop < 13) { // Skim along bottom — weaving in center area
         const p = (loop-9)/4; const a = p*Math.PI*1.5;
-        return { camPos: [-W+5+p*30, -40+p*5, Math.sin(a)*15], camLook: [-W+10+p*30, -38, Math.sin(a+0.5)*12], fov:85, roll:Math.sin(a)*0.12, showT:false, speed:5.5 };
+        return { camPos: [Math.cos(a)*R*0.6, -33+p*8, Math.sin(a)*R*0.6], camLook: [Math.cos(a+0.5)*5, -35, Math.sin(a+0.5)*5], fov:85, roll:Math.sin(a)*0.1, showT:false, speed:5 };
       }
-      if (loop < 17) { // Swoop up along right wall
+      if (loop < 17) { // Swoop up through center — looking at walls
         const p = (loop-13)/4;
-        const y = -35 + p*55;
-        return { camPos: [W-2, y, 10-p*20], camLook: [W-5, y+3, 10-p*25], fov:80, roll:-p*0.08, showT:false, speed:4.5 };
+        const y = -25 + p*55;
+        const a = p*Math.PI*0.5;
+        return { camPos: [Math.cos(a)*R*0.5, y, Math.sin(a)*R*0.5], camLook: [Math.cos(a)*R*1.5, y+3, Math.sin(a)*R*1.5], fov:80, roll:-p*0.08, showT:false, speed:4.5 };
       }
-      if (loop < 21) { // Circle around the center glow
+      if (loop < 21) { // Orbit center glow
         const p = (loop-17)/4; const a = p*Math.PI*2;
-        return { camPos: [Math.cos(a)*8, 5+Math.sin(p*Math.PI*2)*10, Math.sin(a)*8], camLook: [0, 5, 0], fov:75, roll:Math.sin(a*2)*0.1, showT:false, speed:3 };
+        return { camPos: [Math.cos(a)*R*0.4, 5+Math.sin(p*Math.PI*2)*8, Math.sin(a)*R*0.4], camLook: [0, 3, 0], fov:75, roll:Math.sin(a*2)*0.08, showT:false, speed:3 };
       }
-      if (loop < 25) { // Thread through corridor at eye level
+      if (loop < 25) { // Fly between buildings — staying in corridor gaps, looking sideways at walls
         const p = (loop-21)/4;
-        const z = -W + p*W*2;
-        return { camPos: [-W+3, 10, z], camLook: [-W+6, 10, z+5], fov:85, roll:Math.sin(p*Math.PI*3)*0.06, showT:false, speed:5 };
+        const y = 10 + Math.sin(p*Math.PI)*5;
+        return { camPos: [Math.cos(p*Math.PI)*R*0.7, y, Math.sin(p*Math.PI)*R*0.7], camLook: [Math.cos(p*Math.PI+0.3)*R*1.2, y-2, Math.sin(p*Math.PI+0.3)*R*1.2], fov:80, roll:Math.sin(p*Math.PI*3)*0.06, showT:false, speed:4 };
       }
-      if (loop < 30) { // Dive through center shaft — world flip!
+      if (loop < 30) { // Center shaft dive — world flip!
         const p = (loop-25)/5;
-        const y = 30 - p*60;
-        return { camPos: [Math.sin(p*Math.PI*2)*5, y, Math.cos(p*Math.PI*2)*5], camLook: [0, y-10, 0], fov:95+p*10, roll:p*Math.PI, showT:false, speed:6 };
+        const y = 25 - p*55;
+        return { camPos: [Math.sin(p*Math.PI*2)*R*0.3, y, Math.cos(p*Math.PI*2)*R*0.3], camLook: [0, y-10, 0], fov:95+p*10, roll:p*Math.PI, showT:false, speed:6 };
       }
-      if (loop < 35) { // Upside down flight along ceiling
+      if (loop < 35) { // Upside-down circle — looking up at inverted buildings
         const p = (loop-30)/5; const a = p*Math.PI;
-        return { camPos: [Math.cos(a)*15, 45, Math.sin(a)*15], camLook: [Math.cos(a+0.5)*10, 40, Math.sin(a+0.5)*10], fov:80, roll:Math.PI*(1-p*0.5), showT:false, speed:4 };
+        return { camPos: [Math.cos(a)*R*0.6, 40, Math.sin(a)*R*0.6], camLook: [Math.cos(a+0.3)*R*0.8, 45, Math.sin(a+0.3)*R*0.8], fov:80, roll:Math.PI*(1-p*0.5), showT:false, speed:4 };
       }
-      if (loop < 40) { // Spiral back down to center
+      if (loop < 40) { // Spiral down to center
         const p = (loop-35)/5; const a = p*Math.PI*3;
-        const y = 40 - p*35;
-        const r = 20 - p*15;
-        return { camPos: [Math.cos(a)*r, y, Math.sin(a)*r], camLook: [0, y-5, 0], fov:85-p*15, roll:Math.sin(a)*0.08+Math.PI*0.5*(1-p), showT:false, speed:4.5 };
+        const y = 35 - p*30;
+        const r = R*0.7 - p*R*0.4;
+        return { camPos: [Math.cos(a)*r, y, Math.sin(a)*r], camLook: [0, y-5, 0], fov:80-p*15, roll:Math.sin(a)*0.06+Math.PI*0.5*(1-p), showT:false, speed:4 };
       }
-      { // Final circle, come to rest near Nakime
+      { // Approach Nakime's room
         const p = (loop-40)/5; const a = p*Math.PI*0.5;
-        return { camPos: [Math.cos(a)*5, 55+1, Math.sin(a)*5+2], camLook: [0, 55+0.8, 0], fov:65, roll:0, showT:false, speed:1.5 };
+        return { camPos: [Math.cos(a)*5, 53+p*2, Math.sin(a)*5+2], camLook: [0, 55+0.8, 0], fov:65, roll:0, showT:false, speed:1.5 };
       }
     }
   },
