@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>無限城 - Infinity Castle</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #0a0010; }
+    canvas { display: block; }
+    #overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(10, 4, 0, 0.95);
+      z-index: 10; transition: opacity 1.5s;
+      font-family: 'Noto Serif JP', serif;
+    }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+    #overlay h1 {
+      font-size: 5rem; color: #ffaa55;
+      text-shadow: 0 0 40px #ff6622, 0 0 80px #cc4400;
+      letter-spacing: 1.5rem; margin-bottom: 0.5rem;
+    }
+    #overlay p { color: #aa7744; font-size: 1.1rem; letter-spacing: 0.3rem; }
+    #overlay button, #overlay .lang-btn {
+      padding: 10px 30px; width: 320px;
+      background: transparent; border: 1px solid #ff6622;
+      color: #ffaa55; font-size: 0.85rem; cursor: pointer;
+      letter-spacing: 0.1rem; transition: all 0.3s;
+      font-family: inherit; text-align: center;
+    }
+    #overlay button:hover, #overlay .lang-btn:hover {
+      background: #ff662233; box-shadow: 0 0 20px #ff662255;
+    }
+    .lang-bar {
+      display: flex; gap: 8px; margin-top: 0.8rem; margin-bottom: 0.5rem;
+    }
+    .lang-btn {
+      width: auto !important; padding: 6px 16px !important; font-size: 0.75rem !important;
+    }
+    .lang-btn.active {
+      background: #ff662244; border-color: #ffaa55;
+    }
+    #music-toggle {
+      position: fixed; top: 15px; right: 15px; z-index: 20;
+      background: rgba(10,4,0,0.8); border: 1px solid #ff662266;
+      color: #ffaa55; padding: 8px 14px; font-size: 0.8rem;
+      cursor: pointer; font-family: 'Noto Serif JP', serif;
+      border-radius: 4px; transition: all 0.3s;
+    }
+    #music-toggle:hover { background: #ff662233; }
+    #info {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: #6644aa55; font-size: 0.75rem; font-family: monospace;
+      pointer-events: none; z-index: 5;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="overlay">
+    <h1>無限城</h1>
+    <p id="subtitle">鬼舞辻無惨の居城</p>
+
+    <div class="lang-bar">
+      <button class="lang-btn active" data-lang="ko">한국어</button>
+      <button class="lang-btn" data-lang="ja">日本語</button>
+      <button class="lang-btn" data-lang="en">English</button>
+    </div>
+
+    <div id="events" style="display:flex; flex-direction:column; gap:10px; margin-top:0.8rem; align-items:center;">
+      <button data-event="nakime" data-ko="나키메의 비파 — 무한성 진입" data-ja="鳴女の琵琶 — 無限城進入" data-en="Nakime's Biwa — Enter the Castle">나키메의 비파 — 무한성 진입</button>
+      <button data-event="akaza" data-ko="탄지로 & 기유 vs 아카자 (상현3)" data-ja="炭治郎 & 義勇 vs 猗窩座 (上弦の参)" data-en="Tanjiro & Giyu vs Akaza (Upper 3)">탄지로 & 기유 vs 아카자 (상현3)</button>
+      <button data-event="douma" data-ko="시노부 vs 도우마 (상현2)" data-ja="しのぶ vs 童磨 (上弦の弐)" data-en="Shinobu vs Doma (Upper 2)">시노부 vs 도우마 (상현2)</button>
+      <button data-event="kokushibo" data-ko="무이치로 & 겐야 vs 코쿠시보 (상현1)" data-ja="無一郎 & 玄弥 vs 黒死牟 (上弦の壱)" data-en="Muichiro & Genya vs Kokushibo (Upper 1)">무이치로 & 겐야 vs 코쿠시보 (상현1)</button>
+      <button data-event="zenitsu" data-ko="젠이츠 vs 카이가쿠 (신 상현6)" data-ja="善逸 vs 獪岳 (新上弦の陸)" data-en="Zenitsu vs Kaigaku (New Upper 6)">젠이츠 vs 카이가쿠 (신 상현6)</button>
+      <button data-event="muzan" data-ko="탄지로 vs 무잔 — 최종결전" data-ja="炭治郎 vs 無惨 — 最終決戦" data-en="Tanjiro vs Muzan — Final Battle">탄지로 vs 무잔 — 최종결전</button>
+      <button data-event="crow_eye" data-ko="까마귀의 눈 — 무한성 정찰" data-ja="鴉の目 — 無限城偵察" data-en="Crow's Eye — Castle Recon" style="border-color:#ff2200; color:#ff6644;">까마귀의 눈 — 무한성 정찰</button>
+    </div>
+  </div>
+
+  <button id="music-toggle">♪ Music OFF</button>
+  <div id="info">Auto Tour active · Click to take manual control (WASD + Mouse) · Scroll to speed</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
