@@ -309,27 +309,67 @@ function addBuilding(ox, oy, oz, w, h, d, rotY, rotX, rotZ, scaffoldH) {
 }
 
 // Corridor connecting two points
-function addCorridor(x1, y1, z1, x2, y2, z2, corridorW) {
-  const dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
-  const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  if (len < 0.5) return;
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, mz = (z1 + z2) / 2;
-  const ry = Math.atan2(dx, dz);
-  const pitch = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
-  const cw = corridorW || 1.5;
-
-  // Floor
-  addGeo(geoCollectors.wood, getBox(cw, 0.06, len), mx, my, mz, pitch, ry);
-  // Railings
-  addGeo(geoCollectors.frame, getBox(0.04, 0.6, len), mx + cw / 2 * Math.cos(ry), my + 0.3, mz - cw / 2 * Math.sin(ry), pitch, ry);
-  addGeo(geoCollectors.frame, getBox(0.04, 0.6, len), mx - cw / 2 * Math.cos(ry), my + 0.3, mz + cw / 2 * Math.sin(ry), pitch, ry);
-  // Posts
-  for (let t = 0; t <= 1; t += 0.25) {
-    const px = x1 + dx * t, py = y1 + dy * t, pz = z1 + dz * t;
-    for (const side of [-1, 1]) {
-      addGeo(geoCollectors.frame, getBox(0.04, 0.7, 0.04),
-        px + side * cw / 2 * Math.cos(ry), py + 0.35, pz - side * cw / 2 * Math.sin(ry));
+// Straight segment helper (axis-aligned)
+function addCorridorSegment(x, y, z, len, cw, axis) {
+  // axis: 'x' = runs along X, 'z' = runs along Z
+  if (len < 0.3) return;
+  const absLen = Math.abs(len);
+  const mid = len / 2;
+  if (axis === 'x') {
+    addGeo(geoCollectors.wood, getBox(absLen, 0.06, cw), x + mid, y, z);
+    addGeo(geoCollectors.frame, getBox(absLen, 0.5, 0.04), x + mid, y + 0.3, z + cw / 2);
+    addGeo(geoCollectors.frame, getBox(absLen, 0.5, 0.04), x + mid, y + 0.3, z - cw / 2);
+    for (let t = 0; t <= absLen; t += 1.5) {
+      const px = x + (len > 0 ? t : -t);
+      addGeo(geoCollectors.frame, getBox(0.04, 0.55, 0.04), px, y + 0.3, z + cw / 2);
+      addGeo(geoCollectors.frame, getBox(0.04, 0.55, 0.04), px, y + 0.3, z - cw / 2);
     }
+  } else {
+    addGeo(geoCollectors.wood, getBox(cw, 0.06, absLen), x, y, z + mid);
+    addGeo(geoCollectors.frame, getBox(0.04, 0.5, absLen), x + cw / 2, y + 0.3, z + mid);
+    addGeo(geoCollectors.frame, getBox(0.04, 0.5, absLen), x - cw / 2, y + 0.3, z + mid);
+    for (let t = 0; t <= absLen; t += 1.5) {
+      const pz = z + (len > 0 ? t : -t);
+      addGeo(geoCollectors.frame, getBox(0.04, 0.55, 0.04), x + cw / 2, y + 0.3, pz);
+      addGeo(geoCollectors.frame, getBox(0.04, 0.55, 0.04), x - cw / 2, y + 0.3, pz);
+    }
+  }
+}
+
+// L-shaped corridor: go along X first, then Z (right-angle turn)
+function addCorridor(x1, y1, z1, x2, y2, z2, corridorW) {
+  const cw = corridorW || 1.5;
+  const dx = x2 - x1, dz = z2 - z1;
+  if (Math.abs(dx) < 0.5 && Math.abs(dz) < 0.5) return;
+
+  // Use average Y (corridors are flat, stairs handle height changes)
+  const cy = (y1 + y2) / 2;
+
+  // If height difference is large, add vertical stairs section
+  const dy = y2 - y1;
+  if (Math.abs(dy) > 1) {
+    // Stairs: vertical pillar + platforms at top and bottom
+    const stairX = x1 + dx * 0.5;
+    const stairZ = z1;
+    addGeo(geoCollectors.frame, getBox(0.15, Math.abs(dy), 0.15), stairX, (y1 + y2) / 2, stairZ);
+  }
+
+  // L-shape: first leg along X, second leg along Z
+  // Corner point
+  const cornerX = x2;
+  const cornerZ = z1;
+
+  // Leg 1: X direction (from start to corner)
+  if (Math.abs(dx) > 0.5) {
+    addCorridorSegment(x1, cy, z1, dx, cw, 'x');
+  }
+  // Leg 2: Z direction (from corner to end)
+  if (Math.abs(dz) > 0.5) {
+    addCorridorSegment(cornerX, cy, z1, dz, cw, 'z');
+  }
+  // Corner floor plate
+  if (Math.abs(dx) > 0.5 && Math.abs(dz) > 0.5) {
+    addGeo(geoCollectors.wood, getBox(cw + 0.2, 0.06, cw + 0.2), cornerX, cy, cornerZ);
   }
 }
 
