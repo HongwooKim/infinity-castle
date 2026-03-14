@@ -1503,12 +1503,13 @@ function createArena(x, y, z, w, d) {
 }
 
 // Create arenas at specific locations inside the shaft
+// Arenas in center of shaft (±15 range, clear of wall buildings at ±30+)
 const arenas = {
-  akaza: createArena(0, 5, 0, 12, 10),      // mid-level, center
-  douma: createArena(0, -15, 0, 14, 12),     // lower section
-  kokushibo: createArena(0, 25, 0, 10, 10),  // upper section
-  zenitsu: createArena(0, -30, 0, 16, 8),    // deep level, long corridor
-  muzan: createArena(0, 40, 0, 16, 16),      // near top, large
+  akaza: createArena(0, 0, 0, 12, 10),
+  douma: createArena(0, -10, 0, 14, 12),
+  kokushibo: createArena(0, 10, 0, 10, 10),
+  zenitsu: createArena(0, -5, 0, 16, 8),
+  muzan: createArena(0, 15, 0, 16, 16),
 };
 
 const eventCharacters = {
@@ -1517,7 +1518,7 @@ const eventCharacters = {
     chars: ['giyu', 'akaza'],
     arena: 'akaza',
     animate(t, loop) {
-      const bY = 5 + 0.1; // arena floor
+      const bY = 0 + 0.1; // arena floor
       const landY = 15; // landing platform height (a building floor they land on)
 
       // Phase 1 (0-4): TANJIRO FALLING UPSIDE DOWN — flailing helplessly
@@ -1682,7 +1683,7 @@ const eventCharacters = {
     chars: ['shinobu', 'douma'],
     arena: 'douma',
     animate(t, loop) {
-      const bY = -15 + 0.1;
+      const bY = -10 + 0.1;
       const W = SHAFT_W - 3;
       douma.visible = false;
 
@@ -1738,7 +1739,7 @@ const eventCharacters = {
     chars: ['muichiro', 'kokushibo_char'],
     arena: 'kokushibo',
     animate(t, loop) {
-      const bY = 25 + 0.1;
+      const bY = 10 + 0.1;
       const W = SHAFT_W - 3;
       kokushibo.visible = false;
 
@@ -1794,7 +1795,7 @@ const eventCharacters = {
     chars: ['zenitsu_char', 'kaigaku'],
     arena: 'zenitsu',
     animate(t, loop) {
-      const bY = -30 + 0.1;
+      const bY = -5 + 0.1;
 
       lightningGroup.visible = false;
       afterimages.forEach(ai => ai.visible = false);
@@ -1958,7 +1959,7 @@ const eventCharacters = {
     chars: ['muzan_char'],
     arena: 'muzan',
     animate(t, loop) {
-      const bY = 40 + 0.1;
+      const bY = 15 + 0.1;
       const W = SHAFT_W - 3;
       muzan.visible = false;
 
@@ -2089,7 +2090,7 @@ const EVENT_TOURS = {
   akaza: {
     duration: 62,
     getPhase(loop) {
-      const bY = 5;
+      const bY = 0;
       const landY = 15;
 
       // === TANJIRO UPSIDE-DOWN FALL (0-2.5) ===
@@ -2159,7 +2160,7 @@ const EVENT_TOURS = {
   douma: {
     duration: 40,
     getPhase(loop) {
-      const bY = -15; // arena floor
+      const bY = -10; // arena floor
       if (loop < 4) { // Approach arena
         const p = loop/4;
         return { camPos: [-10+p*5,bY+5-p*3,8-p*3], camLook: [0,bY+1,0], fov:65+p*10, roll:0, showT:true, speed:3 };
@@ -2186,7 +2187,7 @@ const EVENT_TOURS = {
   kokushibo: {
     duration: 40,
     getPhase(loop) {
-      const bY = 25; // arena floor
+      const bY = 10; // arena floor
       if (loop < 5) { // Approach
         const p = loop/5;
         return { camPos: [8-p*4,bY+6-p*4,10-p*5], camLook: [0,bY+1,0], fov:50+p*15, roll:0, showT:false, speed:0.5+p*0.5 };
@@ -2213,7 +2214,7 @@ const EVENT_TOURS = {
   zenitsu: {
     duration: 35,
     getPhase(loop) {
-      const bY = -30; // arena floor
+      const bY = -5; // arena floor
       if (loop < 4) { // Walk — following from behind
         const p = loop/4;
         return { camPos: [-8+p*2,bY+1.5,3], camLook: [-6+p,bY+0.8,0], fov:55, roll:0, showT:true, speed:1 };
@@ -2243,7 +2244,7 @@ const EVENT_TOURS = {
   muzan: {
     duration: 50,
     getPhase(loop) {
-      const bY = 40; // muzan arena floor
+      const bY = 15; // muzan arena floor
       const shakeT = loop > 10 ? Math.sin(loop*8)*0.2*(1-Math.min(1,(loop-10)/25)) : 0;
       if (loop < 5) { // Approach muzan on the arena
         const p = loop/5;
