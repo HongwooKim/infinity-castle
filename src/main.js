@@ -2,6 +2,15 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+// ============ LOADING ============
+const loadBar = document.getElementById('load-bar');
+const loadText = document.getElementById('load-text');
+function setLoad(pct, msg) {
+  if (loadBar) loadBar.style.width = pct + '%';
+  if (loadText) loadText.textContent = msg;
+}
+setLoad(5, 'Initializing...');
+
 // ============ SCENE ============
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0400);
@@ -423,12 +432,14 @@ function placeWallBuildings(wallAxis, wallPos, wallDir, rows, cols, heightRange)
   }
 }
 
+setLoad(10, 'Generating wall buildings...');
 // 4 walls — packed tight (20 rows x 10 cols = 800 wall buildings)
 placeWallBuildings('x', SHAFT_W, Math.PI, 20, 10, [-55, 50]);
 placeWallBuildings('x', -SHAFT_W, 0, 20, 10, [-55, 50]);
 placeWallBuildings('z', SHAFT_D, -Math.PI / 2, 20, 10, [-55, 50]);
 placeWallBuildings('z', -SHAFT_D, Math.PI / 2, 20, 10, [-55, 50]);
 
+setLoad(40, 'Generating floors...');
 // Floor — denser grid (8x8)
 for (let gx = 0; gx < 8; gx++) {
   for (let gz = 0; gz < 8; gz++) {
@@ -510,6 +521,7 @@ for (let i = 0; i < 20; i++) {
 }
 
 // ============ MERGE ALL GEOMETRIES ============
+setLoad(65, 'Merging geometry...');
 console.time('merge');
 
 const materials = {
@@ -542,6 +554,7 @@ for (const [name, geos] of Object.entries(geoCollectors)) {
   }
 }
 console.timeEnd('merge');
+setLoad(85, 'Creating characters...');
 
 // ============ NAKIME'S ROOM (separate group, small) ============
 const nakimeRoom = new THREE.Group();
@@ -2716,6 +2729,13 @@ document.getElementById('music-toggle').addEventListener('click', () => {
 const clock = new THREE.Clock();
 let lastTime = 0;
 const _dir = new THREE.Vector3();
+
+// Hide loading, show overlay
+setLoad(100, 'Ready!');
+setTimeout(() => {
+  const ld = document.getElementById('loading');
+  if (ld) ld.style.display = 'none';
+}, 300);
 
 function animate() {
   requestAnimationFrame(animate);

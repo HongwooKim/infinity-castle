@@ -59,6 +59,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div id="loading" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0400;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;font-family:'Noto Serif JP',serif;">
+    <h1 style="font-size:3rem;color:#ffaa55;text-shadow:0 0 30px #ff6622;letter-spacing:1rem;margin-bottom:1rem;">無限城</h1>
+    <div style="width:200px;height:3px;background:#331100;border-radius:2px;overflow:hidden;">
+      <div id="load-bar" style="width:0%;height:100%;background:#ff6622;transition:width 0.3s;"></div>
+    </div>
+    <p id="load-text" style="color:#aa7744;font-size:0.8rem;margin-top:0.8rem;">Building castle...</p>
+  </div>
   <div id="overlay">
     <h1>無限城</h1>
     <p id="subtitle">鬼舞辻無惨の居城</p>
