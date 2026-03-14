@@ -1245,52 +1245,195 @@ const muzan = createFighter({ skin: 0xeee8dd, haori: 0xf0f0f0, hair: 0x0a0a0a, p
 const characters = { giyu, akaza, shinobu, douma, muichiro, kokushibo_char: kokushibo, zenitsu_char: zenitsu, kaigaku, muzan_char: muzan };
 
 // Character animation: position + rotation over time
+// ============ BREATHING EFFECTS ============
+const breathEffects = new THREE.Group();
+scene.add(breathEffects);
+const breathMeshes = [];
+
+function createBreathEffect(color, emissive, count) {
+  const efx = [];
+  const mat = new THREE.MeshStandardMaterial({
+    color, emissive, emissiveIntensity: 1.5,
+    transparent: true, opacity: 0.5, side: THREE.DoubleSide
+  });
+  for (let i = 0; i < count; i++) {
+    const geo = i % 2 === 0
+      ? new THREE.PlaneGeometry(0.6 + Math.random() * 0.4, 0.15)
+      : new THREE.TorusGeometry(0.3 + Math.random() * 0.2, 0.03, 4, 8, Math.PI * (0.5 + Math.random()));
+    const m = new THREE.Mesh(geo, mat.clone());
+    m.visible = false;
+    breathEffects.add(m);
+    efx.push(m);
+  }
+  return efx;
+}
+
+// Pre-create effect pools for each breathing style
+const waterEffects = createBreathEffect(0x4488ff, 0x2266cc, 8);
+const moonEffects = createBreathEffect(0x8855cc, 0x6633aa, 8);
+const mistEffects = createBreathEffect(0xccddff, 0xaabbee, 6);
+const butterflyEffects = createBreathEffect(0xcc55ff, 0xaa33dd, 6);
+const iceEffects = createBreathEffect(0x88ddff, 0x55aadd, 8);
+const fistEffects = createBreathEffect(0xff4488, 0xff2266, 6);
+const tentacleEffects = createBreathEffect(0x880000, 0x660000, 6);
+
+function showBreathEffects(effects, cx, cy, cz, time, radius, speed) {
+  for (let i = 0; i < effects.length; i++) {
+    const e = effects[i];
+    e.visible = true;
+    const angle = (i / effects.length) * Math.PI * 2 + time * speed;
+    const r = radius + Math.sin(time * 3 + i) * 0.3;
+    e.position.set(
+      cx + Math.cos(angle) * r,
+      cy + 0.3 + Math.sin(time * 2 + i * 0.5) * 0.5,
+      cz + Math.sin(angle) * r
+    );
+    e.rotation.set(time * 2 + i, time + i * 0.7, Math.sin(time * 1.5 + i) * 0.5);
+    e.material.opacity = 0.3 + Math.sin(time * 4 + i) * 0.2;
+  }
+}
+
+function hideBreathEffects(effects) {
+  effects.forEach(e => { e.visible = false; });
+}
+
+function hideAllEffects() {
+  [waterEffects, moonEffects, mistEffects, butterflyEffects, iceEffects, fistEffects, tentacleEffects]
+    .forEach(hideBreathEffects);
+}
+
+// ============ CHARACTER ANIMATION ============
 function animateCharacter(char, x, y, z, time, style) {
   char.visible = true;
   char.position.set(x, y, z);
 
   if (style === 'fight_circle') {
-    // Two fighters circling each other
     char.rotation.y = time * 2;
     char.children.forEach(c => {
       if (c.name === 'armR') c.rotation.z = 0.3 + Math.sin(time * 8) * 0.5;
       if (c.name === 'armL') c.rotation.z = -0.3 - Math.sin(time * 8 + 1) * 0.5;
     });
   } else if (style === 'attack') {
-    char.rotation.y = time * 3;
+    // Sword combo: slash patterns cycling
+    const combo = time % 3;
     char.children.forEach(c => {
-      if (c.name === 'sword') c.rotation.z = 0.3 + Math.sin(time * 12) * 1.0;
-      if (c.name === 'armR') c.rotation.z = Math.sin(time * 10) * 0.8;
+      if (c.name === 'sword') {
+        if (combo < 1) c.rotation.z = 0.3 + Math.sin(time * 15) * 1.2; // horizontal slash
+        else if (combo < 2) { c.rotation.z = -0.5 + Math.sin(time * 12) * 0.8; c.rotation.x = Math.sin(time * 10) * 0.5; } // diagonal
+        else c.rotation.z = Math.sin(time * 18) * 1.5; // rapid combo
+      }
+      if (c.name === 'armR') {
+        if (combo < 1) c.rotation.z = Math.sin(time * 15) * 0.8;
+        else c.rotation.z = -0.5 + Math.sin(time * 12) * 1.0;
+      }
+      if (c.name === 'armL') c.rotation.z = -0.3 + Math.sin(time * 6) * 0.3;
     });
+    // Dodge/step: bob and weave
+    char.position.y = y + Math.abs(Math.sin(time * 5)) * 0.15;
+    char.rotation.x = Math.sin(time * 4) * 0.1;
+
+  } else if (style === 'water_breath') {
+    // 물의 호흡 — flowing water sword arcs
+    char.children.forEach(c => {
+      if (c.name === 'sword') c.rotation.z = Math.sin(time * 6) * 1.5;
+      if (c.name === 'armR') c.rotation.z = Math.sin(time * 6) * 1.0;
+      if (c.name === 'armL') c.rotation.z = -0.5 + Math.cos(time * 4) * 0.4;
+    });
+    char.rotation.y = time * 1.5;
+    char.position.y = y + Math.sin(time * 3) * 0.2;
+    showBreathEffects(waterEffects, x, y, z, time, 1.2, 2);
+
+  } else if (style === 'moon_breath') {
+    // 월의 호흡 — wide crescent slashes
+    char.children.forEach(c => {
+      if (c.name === 'sword') {
+        c.rotation.z = Math.sin(time * 4) * 2.0;
+        c.rotation.x = Math.cos(time * 3) * 0.8;
+      }
+      if (c.name === 'armR') c.rotation.z = Math.sin(time * 4) * 1.2;
+    });
+    char.rotation.y = time * 0.8;
+    showBreathEffects(moonEffects, x, y, z, time, 1.8, 1.5);
+
+  } else if (style === 'mist_breath') {
+    // 안개의 호흡 — swift, ghostly movements
+    char.children.forEach(c => {
+      if (c.name === 'sword') c.rotation.z = Math.sin(time * 10) * 1.0;
+      if (c.name === 'armR') c.rotation.z = Math.sin(time * 10) * 0.7;
+    });
+    char.rotation.y = time * 2.5;
+    char.position.x = x + Math.sin(time * 5) * 0.3;
+    char.position.z = z + Math.cos(time * 5) * 0.3;
+    showBreathEffects(mistEffects, x, y, z, time, 1.0, 3);
+
+  } else if (style === 'butterfly') {
+    // 나비춤 — quick thrusts + wing flapping
+    char.rotation.y = time * 2;
+    char.children.forEach(c => {
+      if (c.name === 'wing') c.rotation.y = Math.sin(time * 8) * 0.7;
+      if (c.name === 'sword') c.rotation.z = -0.8 + Math.sin(time * 15) * 0.4; // rapid stabs
+      if (c.name === 'armR') c.rotation.z = -0.5 + Math.sin(time * 15) * 0.3;
+    });
+    char.position.y = y + Math.sin(time * 4) * 0.15;
+    showBreathEffects(butterflyEffects, x, y, z, time, 0.8, 4);
+
+  } else if (style === 'fist_attack') {
+    // 파괴살 — rapid punches + kicks
+    const combo = time % 2;
+    char.children.forEach(c => {
+      if (combo < 0.5) {
+        if (c.name === 'armR') c.rotation.z = -1.5 + Math.sin(time * 20) * 0.5; // right jab
+        if (c.name === 'armL') c.rotation.z = 0.3;
+      } else if (combo < 1) {
+        if (c.name === 'armL') c.rotation.z = 1.5 - Math.sin(time * 20) * 0.5; // left hook
+        if (c.name === 'armR') c.rotation.z = -0.3;
+      } else {
+        if (c.name === 'armR') c.rotation.z = Math.sin(time * 15) * 1.2; // both arms
+        if (c.name === 'armL') c.rotation.z = Math.sin(time * 15 + Math.PI) * 1.2;
+      }
+    });
+    char.rotation.y = time * 3;
+    char.position.y = y + Math.abs(Math.sin(time * 8)) * 0.2;
+    showBreathEffects(fistEffects, x, y, z, time, 1.0, 3);
+
+  } else if (style === 'ice_fan') {
+    // 도우마 부채 공격 — sweeping fan motions
+    char.rotation.y = time * 1.2;
+    char.position.y = y + Math.sin(time * 2) * 0.1;
+    showBreathEffects(iceEffects, x, y, z, time, 2.0, 1.5);
+
+  } else if (style === 'tentacle') {
+    // 무잔 촉수 — whipping tentacles + body movement
+    char.children.forEach(c => {
+      if (c.name === 'tentacle') {
+        c.rotation.x = 0.3 + Math.sin(time * 6 + c.position.x * 10) * 0.8;
+        c.rotation.z = Math.sin(time * 4 + c.position.x * 8) * 0.5;
+      }
+    });
+    char.rotation.y = Math.sin(time * 0.5) * 0.3;
+    showBreathEffects(tentacleEffects, x, y, z, time, 2.5, 1);
+
   } else if (style === 'dash') {
     char.rotation.x = 0.4;
     char.children.forEach(c => {
       if (c.name === 'armR') c.rotation.z = -1.2;
       if (c.name === 'armL') c.rotation.z = 0.8;
-      if (c.name === 'sword') c.rotation.z = -0.5; // sword trailing behind
+      if (c.name === 'sword') c.rotation.z = -0.5;
     });
   } else if (style === 'run') {
-    // Running with arm/leg pumping animation
-    char.rotation.x = 0.2; // slight lean
+    char.rotation.x = 0.2;
     char.children.forEach(c => {
       if (c.name === 'armR') c.rotation.z = Math.sin(time * 10) * 0.6;
       if (c.name === 'armL') c.rotation.z = Math.sin(time * 10 + Math.PI) * 0.6;
-      if (c.name === 'sword') c.rotation.z = -0.3; // held at side
+      if (c.name === 'sword') c.rotation.z = -0.3;
     });
   } else if (style === 'fall') {
     char.rotation.x = Math.sin(time) * 0.3;
     char.rotation.z = Math.sin(time * 1.5) * 0.2;
   } else if (style === 'idle') {
     char.rotation.y = time * 0.5;
-  } else if (style === 'butterfly') {
-    char.rotation.y = time * 1.5;
-    char.children.forEach(c => {
-      if (c.name === 'wing') c.rotation.y = Math.sin(time * 6) * 0.6;
-    });
-  } else if (style === 'tentacle') {
-    char.children.forEach(c => {
-      if (c.name === 'tentacle') c.rotation.x = 0.3 + Math.sin(time * 4 + Math.random()) * 0.5;
-    });
+    // Subtle breathing
+    char.position.y = y + Math.sin(time * 2) * 0.02;
   }
 }
 
@@ -1300,6 +1443,7 @@ function hideAllCharacters() {
   tanjiro.visible = false;
   lightningGroup.visible = false;
   afterimages.forEach(a => { a.visible = false; });
+  hideAllEffects();
 }
 
 function showArena(eventName) {
@@ -1506,13 +1650,18 @@ const eventCharacters = {
       }
       akaza.scale.setScalar(1);
 
-      // Phase 5 (37+): Full battle
+      // Phase 5 (37+): Full battle — breathing techniques!
+      hideAllEffects();
       const fightT = loop - 37;
       const a = fightT * 1.5;
       const r = 3;
-      animateCharacter(tanjiro, Math.cos(a) * r, bY, Math.sin(a) * r, fightT, fightT < 8 ? 'fight_circle' : 'attack');
-      animateCharacter(giyu, Math.cos(a + 2) * r, bY, Math.sin(a + 2) * r, fightT, 'attack');
-      animateCharacter(akaza, Math.cos(a + Math.PI) * (r - 0.5), bY, Math.sin(a + Math.PI) * (r - 0.5), fightT, fightT < 8 ? 'fight_circle' : 'attack');
+      // Tanjiro: 히노카미 카구라 (water→fire breath)
+      const tStyle = fightT < 6 ? 'fight_circle' : fightT < 12 ? 'water_breath' : 'attack';
+      animateCharacter(tanjiro, Math.cos(a) * r, bY, Math.sin(a) * r, fightT, tStyle);
+      // Giyu: 물의 호흡
+      animateCharacter(giyu, Math.cos(a + 2) * r, bY, Math.sin(a + 2) * r, fightT, fightT < 6 ? 'fight_circle' : 'water_breath');
+      // Akaza: 파괴살 (fist attacks)
+      animateCharacter(akaza, Math.cos(a + Math.PI) * (r - 0.5), bY, Math.sin(a + Math.PI) * (r - 0.5), fightT, fightT < 6 ? 'fight_circle' : 'fist_attack');
       tanjiro.lookAt(akaza.position); giyu.lookAt(akaza.position); akaza.lookAt(tanjiro.position);
     }
   },
@@ -1563,11 +1712,12 @@ const eventCharacters = {
         return;
       }
       douma.visible = true; douma.scale.setScalar(1);
-      // Battle (16+)
+      // Battle (16+) — 나비춤 vs 얼음 부채
+      hideAllEffects();
       const fightT = loop - 16;
       const a = fightT * 1.2;
       animateCharacter(shinobu, Math.cos(a) * 4, bY, Math.sin(a) * 4, fightT, 'butterfly');
-      animateCharacter(douma, Math.cos(a + Math.PI) * 2, bY, Math.sin(a + Math.PI) * 2, fightT, 'idle');
+      animateCharacter(douma, Math.cos(a + Math.PI) * 2, bY, Math.sin(a + Math.PI) * 2, fightT, 'ice_fan');
       shinobu.lookAt(douma.position); douma.lookAt(shinobu.position);
     }
   },
@@ -1618,11 +1768,12 @@ const eventCharacters = {
         return;
       }
       kokushibo.visible = true; kokushibo.scale.setScalar(1);
-      // Battle (17+)
+      // Battle (17+) — 안개의 호흡 vs 월의 호흡
+      hideAllEffects();
       const fightT = loop - 17;
       const a = fightT * 0.8;
-      animateCharacter(muichiro, Math.cos(a) * 3, bY, Math.sin(a) * 3, fightT, 'attack');
-      animateCharacter(kokushibo, 0, bY, 0, fightT, 'attack');
+      animateCharacter(muichiro, Math.cos(a) * 3, bY, Math.sin(a) * 3, fightT, 'mist_breath');
+      animateCharacter(kokushibo, 0, bY, 0, fightT, 'moon_breath');
       muichiro.lookAt(kokushibo.position); kokushibo.lookAt(muichiro.position);
     }
   },
@@ -1836,11 +1987,12 @@ const eventCharacters = {
         return;
       }
       muzan.visible = true; muzan.scale.setScalar(1);
-      // Battle (16+)
+      // Battle (16+) — 촉수 vs 히노카미 카구라
+      hideAllEffects();
       animateCharacter(muzan, 0, bY, 0, loop, 'tentacle');
       tanjiro.visible = true;
       const a = (loop - 16) * 1.5;
-      animateCharacter(tanjiro, Math.cos(a) * 5, bY, Math.sin(a) * 5, loop, 'attack');
+      animateCharacter(tanjiro, Math.cos(a) * 5, bY, Math.sin(a) * 5, loop, 'water_breath');
       tanjiro.lookAt(muzan.position);
       muzan.lookAt(tanjiro.position);
     }
