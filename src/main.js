@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ============ SCENE ============
 const scene = new THREE.Scene();
@@ -665,7 +666,7 @@ for (let i = 0; i < NUM_CROWS; i++) {
   crow.add(eye2);
 
   // Eye glow light (so they're visible in darkness)
-  const eyeLight = new THREE.PointLight(0xff2200, 0.8, 8, 2);
+  const eyeLight = new THREE.PointLight(0xff2200, 2.0, 25, 1.5);
   eyeLight.position.set(0, 0.25, 0.75);
   crow.add(eyeLight);
 
@@ -705,7 +706,7 @@ for (let i = 0; i < NUM_CROWS; i++) {
     flapSpeed: 6 + Math.random() * 5,
   };
 
-  crow.scale.setScalar(1.0 + Math.random() * 0.5);
+  crow.scale.setScalar(3.0 + Math.random() * 1.5);
   scene.add(crow);
   crows.push(crow);
 }
@@ -740,40 +741,63 @@ function updateCrows(t) {
 }
 
 // ============ TANJIRO (falling silhouette) ============
+// ============ TANJIRO (3D model from GLB) ============
 const tanjiro = new THREE.Group();
-const tBodyMat = new THREE.MeshStandardMaterial({ color: 0x1a0808, roughness: 0.9 });
-const tHaoriMat = new THREE.MeshStandardMaterial({ color: 0x2a4433, roughness: 0.8 }); // green checkered haori
-// Body
-const tTorso = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.6, 0.25), tHaoriMat);
-tTorso.position.y = 0.3; tanjiro.add(tTorso);
-// Head
-const tHead = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 5), tBodyMat);
-tHead.position.y = 0.75; tanjiro.add(tHead);
-// Hair (burgundy)
-const tHairMat = new THREE.MeshStandardMaterial({ color: 0x4a1010, roughness: 0.9 });
-const tHair = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.2), tHairMat);
-tHair.position.set(0, 0.85, 0); tanjiro.add(tHair);
-// Arms (spread out while falling)
-for (const side of [-1, 1]) {
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.12), tHaoriMat);
-  arm.position.set(side * 0.35, 0.4, 0);
-  arm.rotation.z = side * 0.5;
-  tanjiro.add(arm);
-}
-// Legs
-for (const side of [-0.1, 0.1]) {
-  const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.14), tBodyMat);
-  leg.position.set(side, -0.15, 0);
-  tanjiro.add(leg);
-}
-// Sword (nichirin)
-const swordMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.2 });
-const sword = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.7, 0.01), swordMat);
-sword.position.set(0.4, 0.2, 0.1); sword.rotation.z = 0.3;
-tanjiro.add(sword);
-
 tanjiro.visible = false;
 scene.add(tanjiro);
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.load('/chars/tanjiro.glb', (gltf) => {
+  const model = gltf.scene;
+  // Target height: 0.8m (half of original 1.6)
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = 0.8 / maxDim;
+  model.scale.setScalar(scale);
+  const scaledBox = new THREE.Box3().setFromObject(model);
+  model.position.y = -scaledBox.min.y;
+  model.position.x = -(scaledBox.min.x + scaledBox.max.x) / 2;
+  model.position.z = -(scaledBox.min.z + scaledBox.max.z) / 2;
+
+  // Vertex coloring by Y position
+  const modelH = 1.9;
+  model.traverse((child) => {
+    if (child.isMesh && child.geometry) {
+      const geo = child.geometry;
+      const pos = geo.attributes.position;
+      if (!pos) return;
+      const colors = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) {
+        const y = pos.getY(i);
+        const x = pos.getX(i);
+        const ny = y / modelH;
+        let r, g2, b;
+        if (ny > 0.88) { r=0.29; g2=0.08; b=0.08; }
+        else if (ny > 0.78) { r=0.83; g2=0.65; b=0.46; }
+        else if (ny > 0.73) { r=0.9; g2=0.88; b=0.85; }
+        else if (ny > 0.42) {
+          const ck = (Math.floor(x*8)+Math.floor(y*8))%2;
+          if (ck===0) { r=0.13; g2=0.40; b=0.27; } else { r=0.08; g2=0.06; b=0.05; }
+        }
+        else if (ny > 0.38) { r=0.85; g2=0.85; b=0.82; }
+        else if (ny > 0.12) { r=0.22; g2=0.13; b=0.09; }
+        else if (ny > 0.05) { r=0.88; g2=0.86; b=0.83; }
+        else { r=0.55; g2=0.15; b=0.10; }
+        colors[i*3]=r; colors[i*3+1]=g2; colors[i*3+2]=b;
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      child.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.05 });
+      child.castShadow = true;
+    }
+  });
+  tanjiro.add(model);
+}, undefined, (err) => {
+  // Fallback
+  const fb = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.15),
+    new THREE.MeshStandardMaterial({ color: 0x2a6644 }));
+  fb.position.y = 0.4; tanjiro.add(fb);
+});
 
 // ============ CHARACTER FACTORY ============
 function createFighter(config) {
@@ -1299,39 +1323,67 @@ const eventCharacters = {
       const bY = 5 + 0.1; // arena floor
       const landY = 15; // landing platform height (a building floor they land on)
 
-      // Phase 1 (0-3): FALLING from Nakime's room — tumbling down
-      if (loop < 3) {
-        const p = loop / 3;
-        const fallY = 50 - p * (50 - landY); // 50 → landY
-        const fallSpeed = p * p; // accelerating
+      // Phase 1 (0-4): TANJIRO FALLING UPSIDE DOWN — flailing helplessly
+      if (loop < 4) {
         akaza.visible = false;
         giyu.visible = true; tanjiro.visible = true;
 
-        // Tanjiro falling, arms flailing
-        animateCharacter(tanjiro, 1 + Math.sin(loop * 3) * 0.5, fallY, Math.cos(loop * 2) * 0.5, loop, 'fall');
-        // Giyu falling nearby, more controlled
-        animateCharacter(giyu, -1 + Math.sin(loop * 2.5) * 0.3, fallY - 1, Math.cos(loop * 1.8) * 0.3, loop, 'fall');
+        if (loop < 2.5) {
+          // Tanjiro falling upside down, spinning
+          const p = loop / 2.5;
+          const fallY = 50 - p * 25;
+          animateCharacter(tanjiro, Math.sin(loop * 2) * 1, fallY, Math.cos(loop * 1.5) * 0.5, loop, 'fall');
+          tanjiro.rotation.x = Math.PI + Math.sin(loop * 3) * 0.3; // upside down!
+          tanjiro.rotation.z = Math.sin(loop * 4) * 0.4; // spinning
+
+          // Giyu diving down from above — controlled, faster
+          const giyuY = 48 - p * 20;
+          animateCharacter(giyu, Math.sin(loop * 2) * 0.8 - 0.5, giyuY, Math.cos(loop * 1.5) * 0.3 + 0.3, loop, 'dash');
+          giyu.rotation.x = 0.5; // diving headfirst
+        }
+        else if (loop < 3.2) {
+          // Giyu CATCHES Tanjiro — grabs him mid-air
+          const p = (loop - 2.5) / 0.7;
+          const catchY = 25 - p * 5;
+          // Giyu grabs tanjiro — they're close together
+          animateCharacter(giyu, 0, catchY, 0, loop, 'idle');
+          animateCharacter(tanjiro, 0.3, catchY - 0.2, 0.1, loop, 'idle');
+          // Tanjiro rights himself as Giyu holds him
+          tanjiro.rotation.x = Math.PI * (1 - p); // flipping back to upright
+          tanjiro.rotation.z = 0.3 * (1 - p);
+          giyu.rotation.x = 0.3 * (1 - p);
+        }
+        else {
+          // Together they angle toward a landing spot
+          const p = (loop - 3.2) / 0.8;
+          const landApproachY = 20 - p * (20 - landY);
+          animateCharacter(giyu, -0.3, landApproachY, 0.2, loop, 'dash');
+          animateCharacter(tanjiro, 0.3, landApproachY + 0.1, -0.1, loop, 'dash');
+          tanjiro.rotation.x = 0; // fully upright now
+          giyu.rotation.x = 0.2 * (1 - p);
+        }
         return;
       }
 
-      // Phase 2 (3-4): LANDING on a building platform — impact
-      if (loop < 4) {
-        const p = loop - 3;
+      // Phase 2 (4-5): LANDING — both hit the platform
+      if (loop < 5) {
+        const p = loop - 4;
         akaza.visible = false;
-        // Land and recover
-        const landBounce = Math.sin(p * Math.PI) * 0.3 * (1 - p);
-        animateCharacter(tanjiro, 1, landY + landBounce, 0, loop, 'idle');
-        animateCharacter(giyu, -0.5, landY + landBounce * 0.5, 0.5, loop, 'idle');
-        // Look around
-        tanjiro.rotation.y = p * Math.PI * 0.3;
-        giyu.rotation.y = -p * Math.PI * 0.2;
+        const landBounce = Math.sin(p * Math.PI) * 0.2 * (1 - p);
+        // Giyu lands first, steady
+        animateCharacter(giyu, -0.5, landY + landBounce * 0.3, 0.5, loop, 'idle');
+        // Tanjiro stumbles a bit on landing
+        animateCharacter(tanjiro, 1 + (1 - p) * 0.3, landY + landBounce, 0, loop, 'idle');
+        tanjiro.rotation.z = (1 - p) * 0.2; // slight stumble
+        // They look at each other, then forward
+        tanjiro.rotation.y = -0.3 + p * 0.3;
+        giyu.rotation.y = 0.2 - p * 0.2;
         return;
       }
 
-      // Phase 3 (4-34): LONG RUNNING through castle — 30 seconds!
-      // Multi-section course: corridors, stairs, bridges, jumps, more corridors
-      if (loop < 34) {
-        const runT = loop - 4; // 0-30 seconds of running
+      // Phase 3 (5-35): LONG RUNNING through castle — 30 seconds!
+      if (loop < 35) {
+        const runT = loop - 5; // 0-30 seconds of running
         const runP = runT / 30; // 0-1 overall progress
         akaza.visible = false;
 
@@ -1399,9 +1451,9 @@ const eventCharacters = {
         return;
       }
 
-      // Phase 4 (34-36): Arrive at arena, Akaza appears from shadows
-      if (loop < 36) {
-        const p = (loop - 34) / 2;
+      // Phase 4 (35-37): Arrive at arena, Akaza appears
+      if (loop < 37) {
+        const p = (loop - 35) / 2;
         animateCharacter(tanjiro, -4, bY, 0, loop, 'idle');
         animateCharacter(giyu, -4, bY, 1.5, loop, 'idle');
 
@@ -1414,8 +1466,8 @@ const eventCharacters = {
       }
       akaza.scale.setScalar(1);
 
-      // Phase 5 (36+): Full battle
-      const fightT = loop - 36;
+      // Phase 5 (37+): Full battle
+      const fightT = loop - 37;
       const a = fightT * 1.5;
       const r = 3;
       animateCharacter(tanjiro, Math.cos(a) * r, bY, Math.sin(a) * r, fightT, fightT < 8 ? 'fight_circle' : 'attack');
@@ -1830,24 +1882,32 @@ const EVENT_TOURS = {
 
   // ======= 2. 탄지로 & 기유 vs 아카자 — 격렬한 전투 =======
   akaza: {
-    duration: 60,
+    duration: 62,
     getPhase(loop) {
       const bY = 5;
       const landY = 15;
 
-      // === FALL (0-3) ===
-      if (loop < 1.5) { const p = loop/1.5; const fY = 50-p*20;
-        return { camPos: [3,fY-5,4], camLook: [0,fY+2,0], fov:80, roll:p*0.2, showT:true, speed:4 };
-      } if (loop < 3) { const p = (loop-1.5)/1.5; const fY = 30-p*15;
-        return { camPos: [5,fY,3], camLook: [0,fY-3,0], fov:85+p*10, roll:Math.sin(p*Math.PI)*0.15, showT:true, speed:5 };
+      // === TANJIRO UPSIDE-DOWN FALL (0-2.5) ===
+      if (loop < 2.5) { const p = loop/2.5; const fY = 50-p*25;
+        // Camera below, looking up at upside-down Tanjiro
+        return { camPos: [2,fY-5,4], camLook: [0,fY+3,0], fov:80, roll:p*0.25, showT:true, speed:4 };
       }
-      // === LAND (3-4) ===
-      if (loop < 4) { const p = loop-3; const sh = Math.sin(p*Math.PI*6)*0.15*(1-p);
-        return { camPos: [3+sh,landY+1.5,3+sh], camLook: [0,landY+0.5+sh,0], fov:70, roll:sh*0.1, showT:true, speed:1 };
+      // === GIYU CATCHES (2.5-3.2) ===
+      if (loop < 3.2) { const p = (loop-2.5)/0.7; const fY = 25-p*5;
+        // Close-up of the catch moment
+        return { camPos: [1.5,fY+1,2], camLook: [0,fY,0], fov:65, roll:0, showT:true, speed:1 };
       }
-      // === LONG RUN (4-34) — 30 seconds, camera follows character path ===
-      if (loop < 34) {
-        const runT = loop - 4;
+      // === TOGETHER DESCEND (3.2-4) ===
+      if (loop < 4) { const p = (loop-3.2)/0.8; const fY = 20-p*(20-landY);
+        return { camPos: [3,fY+2,3], camLook: [0,fY,0], fov:70, roll:0, showT:true, speed:3 };
+      }
+      // === LAND (4-5) ===
+      if (loop < 5) { const p = loop-4; const sh = Math.sin(p*Math.PI*6)*0.12*(1-p);
+        return { camPos: [3+sh,landY+1.5,3+sh], camLook: [0,landY+0.5+sh,0], fov:70, roll:sh*0.08, showT:true, speed:1 };
+      }
+      // === LONG RUN (5-35) — 30 seconds ===
+      if (loop < 35) {
+        const runT = loop - 5;
         const W = SHAFT_W - 3;
         const wps = [
           {t:0,x:-W,y:landY,z:0},{t:3,x:-W,y:landY,z:-15},
@@ -1870,11 +1930,11 @@ const EVENT_TOURS = {
         if(cs===2) return{camPos:[cx+Math.sin(facing)*5,cy+1.5,cz+Math.cos(facing)*5],camLook:[cx,cy+0.8,cz],fov:70,roll:0,showT:true,speed:4.5};
         return{camPos:[cx+Math.cos(facing+0.5)*3,cy+0.4,cz-Math.sin(facing+0.5)*3],camLook:[cx,cy+0.8,cz],fov:85,roll:Math.sin(runT)*0.03,showT:true,speed:5};
       }
-      // === AKAZA (34-36) ===
-      if(loop<36){const p=(loop-34)/2;
+      // === AKAZA (35-37) ===
+      if(loop<37){const p=(loop-35)/2;
         return{camPos:[0,bY+2,7-p*2],camLook:[0,bY+0.8,0],fov:60+p*10,roll:0,showT:true,speed:0.5};}
-      // === BATTLE (36-60) ===
-      const ft=loop-36;
+      // === BATTLE (37-62) ===
+      const ft=loop-37;
       if(ft<6){const p=ft/6,a=p*Math.PI*2;
         return{camPos:[Math.cos(a)*6,bY+1.5,Math.sin(a)*6],camLook:[0,bY+1,0],fov:75+Math.sin(p*Math.PI*3)*8,roll:Math.sin(a)*0.08,showT:true,speed:4};}
       if(ft<10){const p=(ft-6)/4,sh=Math.sin(p*Math.PI*8)*0.2;
@@ -2448,13 +2508,17 @@ function toggleMusic() {
   }
 }
 
-// Also handle touch events for mobile
+// Handle both click and touch — prevent double-fire
+let musicBtnTouched = false;
 document.getElementById('music-toggle').addEventListener('touchend', (e) => {
   e.preventDefault();
+  musicBtnTouched = true;
   toggleMusic();
+  setTimeout(() => { musicBtnTouched = false; }, 300);
 });
-
-document.getElementById('music-toggle').addEventListener('click', toggleMusic);
+document.getElementById('music-toggle').addEventListener('click', () => {
+  if (!musicBtnTouched) toggleMusic();
+});
 
 // ============ ANIMATE ============
 const clock = new THREE.Clock();
