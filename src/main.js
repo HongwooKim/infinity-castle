@@ -1840,45 +1840,39 @@ const eventCharacters = {
       }
       kaigaku.visible = true; kaigaku.scale.setScalar(1);
 
-      // Remap remaining phases: subtract 10 from original timings
-      const ft = loop - 10; // fight timeline (was 0, now offset)
+      // Fight timeline: ft starts at 14 (after fall+run+appear)
+      const ft = loop - 14;
 
-      // Phase 2 (14-17→ft 4-7): Standoff
-      if (ft < 7) {
-        animateCharacter(zenitsu, -5, bY, 0, loop, 'idle');
-        animateCharacter(kaigaku, 5, bY, 0, loop, 'attack');
+      // Standoff (ft 0-3)
+      if (ft < 3) {
+        animateCharacter(zenitsu, -5, bY, 0, ft, 'idle');
+        animateCharacter(kaigaku, 5, bY, 0, ft, 'attack');
         zenitsu.lookAt(kaigaku.position); kaigaku.lookAt(zenitsu.position);
       }
-      // Phase 3 (7-8): 화뢰신 BUILDUP — lightning gathers around Zenitsu
-      else if (loop < 8) {
-        const p = loop - 7;
-        animateCharacter(zenitsu, -5, bY, 0, loop, 'idle');
-        animateCharacter(kaigaku, 5, bY, 0, loop, 'idle');
+      // 화뢰신 BUILDUP (ft 3-4)
+      else if (ft < 4) {
+        const p = ft - 3;
+        animateCharacter(zenitsu, -5, bY, 0, ft, 'idle');
+        animateCharacter(kaigaku, 5, bY, 0, ft, 'idle');
         zenitsu.lookAt(kaigaku.position);
-
-        // Lightning bolts appear around Zenitsu
         lightningGroup.visible = true;
         lightningGroup.position.set(-5, bY + 0.5, 0);
         lightningGroup.rotation.y = t * 8;
         lightningGroup.scale.setScalar(p * 1.5);
-        // Dragon not visible yet
         lightningGroup.children.forEach(c => {
           if (c.name === 'dragonBody' || c.name === 'dragonHead') c.visible = false;
           if (c.name === 'bolt') { c.visible = true; c.material.opacity = p; }
           if (c.name === 'flash') c.intensity = p * 10;
         });
       }
-      // Phase 4 (8-9.5): 화뢰신 DASH — Zenitsu blazes across in 1.5 sec
-      else if (loop < 9.5) {
-        const p = (loop - 8) / 1.5;
-        const easeP = p < 0.3 ? p / 0.3 * 0.1 : 0.1 + (p - 0.3) / 0.7 * 0.9; // slow start, then BURST
-
+      // 화뢰신 DASH (ft 4-5.5)
+      else if (ft < 5.5) {
+        const p = (ft - 4) / 1.5;
+        const easeP = p < 0.3 ? p / 0.3 * 0.1 : 0.1 + (p - 0.3) / 0.7 * 0.9;
         const zX = -5 + easeP * 12;
-        animateCharacter(zenitsu, zX, bY, 0, loop, 'dash');
-        animateCharacter(kaigaku, 5, bY, 0, loop, 'attack');
+        animateCharacter(zenitsu, zX, bY, 0, ft, 'dash');
+        animateCharacter(kaigaku, 5, bY, 0, ft, 'attack');
         zenitsu.lookAt(kaigaku.position);
-
-        // Lightning dragon follows Zenitsu
         lightningGroup.visible = true;
         lightningGroup.position.set(zX - 1, bY + 0.5, 0);
         lightningGroup.rotation.y = 0;
@@ -1886,34 +1880,23 @@ const eventCharacters = {
         lightningGroup.children.forEach(c => {
           if (c.name === 'dragonBody') { c.visible = true; c.position.x = -2; }
           if (c.name === 'dragonHead') { c.visible = true; c.position.set(2, 0, 0); }
-          if (c.name === 'bolt') {
-            c.visible = true;
-            c.position.x = (Math.random() - 0.5) * 4;
-            c.material.opacity = 0.7 + Math.random() * 0.3;
-          }
+          if (c.name === 'bolt') { c.visible = true; c.position.x = (Math.random()-0.5)*4; c.material.opacity = 0.7+Math.random()*0.3; }
           if (c.name === 'flash') c.intensity = 15 + Math.sin(t * 20) * 10;
         });
-
-        // Afterimages at previous positions
         for (let ai = 0; ai < afterimages.length; ai++) {
           const trailP = Math.max(0, easeP - (ai + 1) * 0.08);
-          const trailX = -5 + trailP * 12;
           afterimages[ai].visible = true;
-          afterimages[ai].position.set(trailX, bY + 0.4, 0);
+          afterimages[ai].position.set(-5 + trailP * 12, bY + 0.4, 0);
           afterimages[ai].material.opacity = 0.25 - ai * 0.04;
         }
       }
-      // Phase 5 (9.5-11): IMPACT — flash, kaigaku hit
-      else if (loop < 11) {
-        const p = (loop - 9.5) / 1.5;
-        animateCharacter(zenitsu, 6, bY, 0, loop, 'idle');
-        zenitsu.rotation.y = Math.PI; // facing away (classic pose)
-
-        // Kaigaku staggers
-        animateCharacter(kaigaku, 5 + p * 0.5, bY, p * 0.3, loop, 'idle');
+      // IMPACT (ft 5.5-7)
+      else if (ft < 7) {
+        const p = (ft - 5.5) / 1.5;
+        animateCharacter(zenitsu, 6, bY, 0, ft, 'idle');
+        zenitsu.rotation.y = Math.PI;
+        animateCharacter(kaigaku, 5 + p * 0.5, bY, p * 0.3, ft, 'idle');
         kaigaku.rotation.z = p * 0.5;
-
-        // Flash fades
         lightningGroup.visible = true;
         lightningGroup.position.set(5, bY + 0.5, 0);
         lightningGroup.children.forEach(c => {
@@ -1922,14 +1905,12 @@ const eventCharacters = {
           if (c.name === 'dragonHead') { c.visible = true; c.material.opacity = 0.8 * (1 - p); }
           if (c.name === 'bolt') c.material.opacity = (1 - p) * 0.5;
         });
-
-        // Afterimages fade
-        afterimages.forEach((a, i) => { a.material.opacity = 0.2 * (1 - p); });
+        afterimages.forEach(a => { a.material.opacity = 0.2 * (1 - p); });
       }
-      // Phase 6 (11-15): Aftermath — kaigaku falls, zenitsu stands
-      else if (loop < 15) {
-        const p = (loop - 11) / 4;
-        animateCharacter(zenitsu, 6, bY, 0, loop, 'idle');
+      // Aftermath (ft 7-11)
+      else if (ft < 11) {
+        const p = (ft - 7) / 4;
+        animateCharacter(zenitsu, 6, bY, 0, ft, 'idle');
         zenitsu.rotation.y = Math.PI;
 
         if (p < 0.3) {
