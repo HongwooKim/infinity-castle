@@ -423,37 +423,37 @@ function placeWallBuildings(wallAxis, wallPos, wallDir, rows, cols, heightRange)
   }
 }
 
-// 4 walls — dense grid
-placeWallBuildings('x', SHAFT_W, Math.PI, 12, 6, [-55, 50]);
-placeWallBuildings('x', -SHAFT_W, 0, 12, 6, [-55, 50]);
-placeWallBuildings('z', SHAFT_D, -Math.PI / 2, 12, 6, [-55, 50]);
-placeWallBuildings('z', -SHAFT_D, Math.PI / 2, 12, 6, [-55, 50]);
+// 4 walls — packed tight (20 rows x 10 cols = 800 wall buildings)
+placeWallBuildings('x', SHAFT_W, Math.PI, 20, 10, [-55, 50]);
+placeWallBuildings('x', -SHAFT_W, 0, 20, 10, [-55, 50]);
+placeWallBuildings('z', SHAFT_D, -Math.PI / 2, 20, 10, [-55, 50]);
+placeWallBuildings('z', -SHAFT_D, Math.PI / 2, 20, 10, [-55, 50]);
 
-// Floor (bottom, right-side up)
-for (let gx = 0; gx < 6; gx++) {
-  for (let gz = 0; gz < 6; gz++) {
+// Floor — denser grid (8x8)
+for (let gx = 0; gx < 8; gx++) {
+  for (let gz = 0; gz < 8; gz++) {
     const w = 5 + srand() * 8, h = 2 + srand() * 2, d = 3 + srand() * 4;
-    const bx = -SHAFT_W + 7 + gx * 13 + srand() * 3;
-    const bz = -SHAFT_D + 7 + gz * 13 + srand() * 3;
+    const bx = -SHAFT_W + 5 + gx * 10 + srand() * 2;
+    const bz = -SHAFT_D + 5 + gz * 10 + srand() * 2;
     addBuilding(bx, -55, bz, w, h, d, srand() * Math.PI * 0.5, 0, 0, 3 + srand() * 5);
     buildingPositions.push({ x: bx, y: -55, z: bz });
   }
 }
-// Ceiling (ALL upside down)
-for (let gx = 0; gx < 6; gx++) {
-  for (let gz = 0; gz < 6; gz++) {
+// Ceiling — denser (8x8)
+for (let gx = 0; gx < 8; gx++) {
+  for (let gz = 0; gz < 8; gz++) {
     const w = 5 + srand() * 8, h = 2 + srand() * 2, d = 3 + srand() * 4;
-    const bx = -SHAFT_W + 7 + gx * 13 + srand() * 3;
-    const bz = -SHAFT_D + 7 + gz * 13 + srand() * 3;
+    const bx = -SHAFT_W + 5 + gx * 10 + srand() * 2;
+    const bz = -SHAFT_D + 5 + gz * 10 + srand() * 2;
     addBuilding(bx, 52, bz, w, h, d, srand() * Math.PI * 0.5, Math.PI, 0, 3 + srand() * 5);
     buildingPositions.push({ x: bx, y: 52, z: bz });
   }
 }
 
-// Inner floating platforms: ABOVE CENTER = UPSIDE DOWN
-for (let level = 0; level < 10; level++) {
-  const y = -45 + level * 10;
-  const numInner = 3 + Math.floor(srand() * 3);
+// Inner floating — more platforms, closer together
+for (let level = 0; level < 15; level++) {
+  const y = -50 + level * 7;
+  const numInner = 4 + Math.floor(srand() * 4);
   for (let i = 0; i < numInner; i++) {
     const w = 5 + srand() * 8, h = 2 + srand() * 2, d = 3 + srand() * 4;
     const rx = y > 0 ? Math.PI : 0; // above center = upside down
