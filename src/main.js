@@ -9,7 +9,11 @@ function setLoad(pct, msg) {
   if (loadBar) loadBar.style.width = pct + '%';
   if (loadText) loadText.textContent = msg;
 }
+// Yield to browser so loading bar can repaint
+function yieldFrame() { return new Promise(r => setTimeout(r, 0)); }
 setLoad(5, 'Initializing...');
+// Detect mobile — reduce building count
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
 // ============ SCENE ============
 const scene = new THREE.Scene();
@@ -433,27 +437,27 @@ function placeWallBuildings(wallAxis, wallPos, wallDir, rows, cols, heightRange)
 }
 
 // Yield to browser between heavy steps
-const yieldFrame = () => new Promise(r => setTimeout(r, 0));
-
 async function buildCastle() {
+const WR = isMobile ? 8 : 20; // wall rows
+const WC = isMobile ? 4 : 10; // wall cols
 setLoad(10, 'Generating wall buildings...');
-placeWallBuildings('x', SHAFT_W, Math.PI, 20, 10, [-55, 50]);
+placeWallBuildings('x', SHAFT_W, Math.PI, WR, WC, [-55, 50]);
 await yieldFrame();
 setLoad(18, 'Wall 2/4...');
-placeWallBuildings('x', -SHAFT_W, 0, 20, 10, [-55, 50]);
+placeWallBuildings('x', -SHAFT_W, 0, WR, WC, [-55, 50]);
 await yieldFrame();
 setLoad(26, 'Wall 3/4...');
-placeWallBuildings('z', SHAFT_D, -Math.PI / 2, 20, 10, [-55, 50]);
+placeWallBuildings('z', SHAFT_D, -Math.PI / 2, WR, WC, [-55, 50]);
 await yieldFrame();
 setLoad(34, 'Wall 4/4...');
-placeWallBuildings('z', -SHAFT_D, Math.PI / 2, 20, 10, [-55, 50]);
+placeWallBuildings('z', -SHAFT_D, Math.PI / 2, WR, WC, [-55, 50]);
 await yieldFrame();
 
 setLoad(40, 'Generating floors...');
 await yieldFrame();
-// Floor — denser grid (8x8)
-for (let gx = 0; gx < 8; gx++) {
-  for (let gz = 0; gz < 8; gz++) {
+const FG = isMobile ? 4 : 8; // floor grid size
+for (let gx = 0; gx < FG; gx++) {
+  for (let gz = 0; gz < FG; gz++) {
     const w = 5 + srand() * 8, h = 2 + srand() * 2, d = 3 + srand() * 4;
     const bx = -SHAFT_W + 5 + gx * 10 + srand() * 2;
     const bz = -SHAFT_D + 5 + gz * 10 + srand() * 2;
@@ -461,9 +465,10 @@ for (let gx = 0; gx < 8; gx++) {
     buildingPositions.push({ x: bx, y: -55, z: bz });
   }
 }
-// Ceiling — denser (8x8)
-for (let gx = 0; gx < 8; gx++) {
-  for (let gz = 0; gz < 8; gz++) {
+await yieldFrame();
+setLoad(48, 'Generating ceiling...');
+for (let gx = 0; gx < FG; gx++) {
+  for (let gz = 0; gz < FG; gz++) {
     const w = 5 + srand() * 8, h = 2 + srand() * 2, d = 3 + srand() * 4;
     const bx = -SHAFT_W + 5 + gx * 10 + srand() * 2;
     const bz = -SHAFT_D + 5 + gz * 10 + srand() * 2;
@@ -472,8 +477,10 @@ for (let gx = 0; gx < 8; gx++) {
   }
 }
 
-// Inner floating — skip arena zone (y=-15 to y=20) to keep battles visible
-for (let level = 0; level < 15; level++) {
+await yieldFrame();
+setLoad(55, 'Generating inner platforms...');
+const innerLevels = isMobile ? 6 : 15;
+for (let level = 0; level < innerLevels; level++) {
   const y = -50 + level * 7;
   // Skip the battle arena zone — keep center clear for combat
   if (y > -15 && y < 20) continue;
@@ -687,7 +694,7 @@ for (let level = 0; level < 6; level++) {
 }
 
 // ============ PARTICLES ============
-const pCount = 3000;
+const pCount = isMobile ? 500 : 3000;
 const pGeo = new THREE.BufferGeometry();
 const pPos = new Float32Array(pCount * 3);
 const pColors = new Float32Array(pCount * 3);
@@ -707,7 +714,7 @@ const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
 scene.add(particles);
 
 // ============ CROWS (나키메의 눈 — 정보 수집 까마귀) ============
-const NUM_CROWS = 12;
+const NUM_CROWS = isMobile ? 4 : 12;
 const crows = [];
 const crowMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 });
 const crowEyeMat = new THREE.MeshStandardMaterial({ color: 0xff2200, emissive: 0xff0000, emissiveIntensity: 1.5 });
