@@ -23,9 +23,9 @@ scene.fog = new THREE.FogExp2(0x1a0800, 0.003);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 800);
 camera.position.set(0, 0, 0);
 
-const renderer = new THREE.WebGLRenderer({ antialias: false }); // no AA for perf
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 2.0;
 document.body.appendChild(renderer.domElement);
@@ -683,12 +683,16 @@ const gb1 = new THREE.Mesh(new THREE.PlaneGeometry(200, 8), glowMat);
 gb1.rotation.x = Math.PI / 2; scene.add(gb1);
 const gb2 = gb1.clone(); gb2.rotation.x = 0; gb2.rotation.y = 0; scene.add(gb2);
 
-// Fewer, stronger point lights (8 instead of 30+)
+// Point lights — fewer on mobile
 const lightColors = [0xff8833, 0xff6622, 0xffaa44, 0xff5511];
-for (let level = 0; level < 6; level++) {
-  const y = -40 + level * 18;
-  for (const pos of [[SHAFT_W - 5, y, 0], [-SHAFT_W + 5, y, 0], [0, y, SHAFT_D - 5], [0, y, -SHAFT_D + 5]]) {
-    const pl = new THREE.PointLight(lightColors[level % 4], 2.5, 50, 1.0);
+const lightLevels = isMobile ? 3 : 6;
+for (let level = 0; level < lightLevels; level++) {
+  const y = -40 + level * (isMobile ? 30 : 18);
+  const lightPositions = isMobile
+    ? [[SHAFT_W - 5, y, 0], [-SHAFT_W + 5, y, 0]]  // 2 per level
+    : [[SHAFT_W - 5, y, 0], [-SHAFT_W + 5, y, 0], [0, y, SHAFT_D - 5], [0, y, -SHAFT_D + 5]]; // 4
+  for (const pos of lightPositions) {
+    const pl = new THREE.PointLight(lightColors[level % 4], isMobile ? 3.5 : 2.5, isMobile ? 80 : 50, 1.0);
     pl.position.set(...pos); scene.add(pl);
   }
 }
@@ -1310,13 +1314,14 @@ function createBreathEffect(color, emissive, count) {
 }
 
 // Pre-create effect pools for each breathing style
-const waterEffects = createBreathEffect(0x4488ff, 0x2266cc, 8);
-const moonEffects = createBreathEffect(0x8855cc, 0x6633aa, 8);
-const mistEffects = createBreathEffect(0xccddff, 0xaabbee, 6);
-const butterflyEffects = createBreathEffect(0xcc55ff, 0xaa33dd, 6);
-const iceEffects = createBreathEffect(0x88ddff, 0x55aadd, 8);
-const fistEffects = createBreathEffect(0xff4488, 0xff2266, 6);
-const tentacleEffects = createBreathEffect(0x880000, 0x660000, 6);
+const bfxCount = isMobile ? 3 : 8;
+const waterEffects = createBreathEffect(0x4488ff, 0x2266cc, bfxCount);
+const moonEffects = createBreathEffect(0x8855cc, 0x6633aa, bfxCount);
+const mistEffects = createBreathEffect(0xccddff, 0xaabbee, bfxCount);
+const butterflyEffects = createBreathEffect(0xcc55ff, 0xaa33dd, bfxCount);
+const iceEffects = createBreathEffect(0x88ddff, 0x55aadd, bfxCount);
+const fistEffects = createBreathEffect(0xff4488, 0xff2266, bfxCount);
+const tentacleEffects = createBreathEffect(0x880000, 0x660000, bfxCount);
 
 function showBreathEffects(effects, cx, cy, cz, time, radius, speed) {
   for (let i = 0; i < effects.length; i++) {
@@ -2787,7 +2792,8 @@ function animate() {
   }
 
   // Particles (update every other frame for perf)
-  if (Math.floor(t * 30) % 2 === 0) {
+  const particleSkip = isMobile ? 5 : 2;
+  if (Math.floor(t * 30) % particleSkip === 0) {
     const pos = particles.geometry.attributes.position.array;
     for (let i = 0; i < pCount; i++) {
       pos[i * 3 + 1] += 0.02;
@@ -2800,8 +2806,8 @@ function animate() {
   coreLight.intensity = 8 * (1.0 + Math.sin(t * 0.8) * 0.3);
   coreOrb.material.opacity = 0.1 + Math.sin(t * 0.5) * 0.05;
 
-  // Crows flying
-  updateCrows(t);
+  // Crows — update every 3rd frame on mobile
+  if (!isMobile || Math.floor(t * 20) % 3 === 0) updateCrows(t);
 
   // Speed lines
   const phase = autoTour ? getTourPhase(tourTime) : null;
