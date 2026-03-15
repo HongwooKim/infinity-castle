@@ -436,6 +436,20 @@ function placeWallBuildings(wallAxis, wallPos, wallDir, rows, cols, heightRange)
   }
 }
 
+// Materials + castle group (global — used by arenas, characters etc.)
+const materials = {
+  darkWood: new THREE.MeshStandardMaterial({ color: 0x2a1808, roughness: 0.9, metalness: 0.02 }),
+  wood: new THREE.MeshStandardMaterial({ color: 0x4a2e14, roughness: 0.85, metalness: 0.02 }),
+  window: new THREE.MeshStandardMaterial({
+    color: 0xffcc66, emissive: 0xff9933, emissiveIntensity: 0.4,
+    transparent: true, opacity: 0.5, side: THREE.DoubleSide,
+  }),
+  roof: new THREE.MeshStandardMaterial({ color: 0x1a1412, roughness: 0.7, metalness: 0.1 }),
+  frame: new THREE.MeshStandardMaterial({ color: 0x1a0e04, roughness: 0.8, metalness: 0.05 }),
+};
+const castle = new THREE.Group();
+scene.add(castle);
+
 // Yield to browser between heavy steps
 async function buildCastle() {
 const WR = isMobile ? 8 : 20; // wall rows
@@ -546,20 +560,6 @@ for (let i = 0; i < 20; i++) {
 setLoad(65, 'Merging geometry...');
 await yieldFrame();
 console.time('merge');
-
-const materials = {
-  darkWood: new THREE.MeshStandardMaterial({ color: 0x2a1808, roughness: 0.9, metalness: 0.02 }),
-  wood: new THREE.MeshStandardMaterial({ color: 0x4a2e14, roughness: 0.85, metalness: 0.02 }),
-  window: new THREE.MeshStandardMaterial({
-    color: 0xffcc66, emissive: 0xff9933, emissiveIntensity: 0.4,
-    transparent: true, opacity: 0.5, side: THREE.DoubleSide,
-  }),
-  roof: new THREE.MeshStandardMaterial({ color: 0x1a1412, roughness: 0.7, metalness: 0.1 }),
-  frame: new THREE.MeshStandardMaterial({ color: 0x1a0e04, roughness: 0.8, metalness: 0.05 }),
-};
-
-const castle = new THREE.Group();
-scene.add(castle);
 
 const matNames = Object.keys(geoCollectors);
 for (let mi = 0; mi < matNames.length; mi++) {
