@@ -432,14 +432,25 @@ function placeWallBuildings(wallAxis, wallPos, wallDir, rows, cols, heightRange)
   }
 }
 
+// Yield to browser between heavy steps
+const yieldFrame = () => new Promise(r => setTimeout(r, 0));
+
+async function buildCastle() {
 setLoad(10, 'Generating wall buildings...');
-// 4 walls — packed tight (20 rows x 10 cols = 800 wall buildings)
 placeWallBuildings('x', SHAFT_W, Math.PI, 20, 10, [-55, 50]);
+await yieldFrame();
+setLoad(18, 'Wall 2/4...');
 placeWallBuildings('x', -SHAFT_W, 0, 20, 10, [-55, 50]);
+await yieldFrame();
+setLoad(26, 'Wall 3/4...');
 placeWallBuildings('z', SHAFT_D, -Math.PI / 2, 20, 10, [-55, 50]);
+await yieldFrame();
+setLoad(34, 'Wall 4/4...');
 placeWallBuildings('z', -SHAFT_D, Math.PI / 2, 20, 10, [-55, 50]);
+await yieldFrame();
 
 setLoad(40, 'Generating floors...');
+await yieldFrame();
 // Floor — denser grid (8x8)
 for (let gx = 0; gx < 8; gx++) {
   for (let gz = 0; gz < 8; gz++) {
@@ -478,6 +489,8 @@ for (let level = 0; level < 15; level++) {
   }
 }
 
+setLoad(55, 'Connecting corridors...');
+await yieldFrame();
 // === CONNECT BUILDINGS with corridors ===
 // Connect nearby buildings
 for (let i = 0; i < buildingPositions.length; i++) {
@@ -524,6 +537,7 @@ for (let i = 0; i < 20; i++) {
 
 // ============ MERGE ALL GEOMETRIES ============
 setLoad(65, 'Merging geometry...');
+await yieldFrame();
 console.time('merge');
 
 const materials = {
@@ -540,9 +554,13 @@ const materials = {
 const castle = new THREE.Group();
 scene.add(castle);
 
-for (const [name, geos] of Object.entries(geoCollectors)) {
+const matNames = Object.keys(geoCollectors);
+for (let mi = 0; mi < matNames.length; mi++) {
+  const name = matNames[mi];
+  const geos = geoCollectors[name];
   if (geos.length === 0) continue;
-  // Merge in chunks to avoid memory issues
+  setLoad(65 + Math.round((mi / matNames.length) * 20), `Merging ${name}...`);
+  await yieldFrame();
   const CHUNK = 500;
   for (let start = 0; start < geos.length; start += CHUNK) {
     const chunk = geos.slice(start, start + CHUNK);
@@ -551,12 +569,13 @@ for (const [name, geos] of Object.entries(geoCollectors)) {
       const mesh = new THREE.Mesh(merged, materials[name]);
       castle.add(mesh);
     }
-    // Free individual geometries
     for (const g of chunk) g.dispose();
   }
 }
 console.timeEnd('merge');
-setLoad(85, 'Creating characters...');
+setLoad(90, 'Creating characters...');
+await yieldFrame();
+} // end buildCastle
 
 // ============ NAKIME'S ROOM (separate group, small) ============
 const nakimeRoom = new THREE.Group();
@@ -2731,12 +2750,15 @@ const clock = new THREE.Clock();
 let lastTime = 0;
 const _dir = new THREE.Vector3();
 
-// Hide loading, show overlay
-setLoad(100, 'Ready!');
-setTimeout(() => {
-  const ld = document.getElementById('loading');
-  if (ld) ld.style.display = 'none';
-}, 300);
+// Hide loading after castle is built
+buildCastle().then(() => {
+  setLoad(100, 'Ready!');
+  setTimeout(() => {
+    const ld = document.getElementById('loading');
+    if (ld) ld.style.display = 'none';
+  }, 300);
+  animate();
+});
 
 function animate() {
   requestAnimationFrame(animate);
@@ -2786,7 +2808,7 @@ function animate() {
   // updateAudio(spd);
   renderer.render(scene, camera);
 }
-animate();
+// animate() is called by buildCastle().then()
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
