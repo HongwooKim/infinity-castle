@@ -1224,6 +1224,64 @@ for (let ai = 0; ai < 5; ai++) {
   afterimages.push(ghost);
 }
 
+// 이노스케 — 멧돼지 가면, 상반신 노출, 이도류 (짐승의 호흡)
+const inosuke = createFighter({ skin: 0xd4a574, haori: 0x1a1a1a, hair: 0x111111, pants: 0x4a6622, belt: 0x886633, scaleY: 1.0,
+  extraFn: (g) => {
+    // Remove haori — shirtless (replace torso color with skin)
+    g.children.forEach(c => {
+      if (c.position && c.position.y > 0.2 && c.position.y < 0.7 && c.geometry) {
+        if (c.geometry.type === 'BoxGeometry') c.material = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.8 });
+      }
+    });
+    // Boar mask (blue-grey with tusks)
+    const maskMat = new THREE.MeshStandardMaterial({ color: 0x556677, roughness: 0.7 });
+    const mask = new THREE.Mesh(new THREE.SphereGeometry(0.17, 6, 5), maskMat);
+    mask.position.set(0, 0.82, 0.02); mask.scale.set(1.1, 0.9, 1.2); g.add(mask);
+    // Tusks
+    const tuskMat = new THREE.MeshStandardMaterial({ color: 0xeeddcc, roughness: 0.5 });
+    for (const s of [-1, 1]) {
+      const tusk = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.1, 4), tuskMat);
+      tusk.position.set(s * 0.08, 0.74, 0.15);
+      tusk.rotation.x = -0.3; tusk.rotation.z = s * 0.3; g.add(tusk);
+    }
+    // Boar ears
+    for (const s of [-1, 1]) {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.08, 4), maskMat);
+      ear.position.set(s * 0.1, 0.95, -0.02); g.add(ear);
+    }
+    // Second sword (이도류 — dual wield)
+    const blade2 = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.6, 0.008),
+      new THREE.MeshStandardMaterial({ color: 0x99aaaa, metalness: 0.9, roughness: 0.2 }));
+    blade2.position.set(-0.35, 0.25, 0.1); blade2.rotation.z = -0.3; blade2.name = 'sword2'; g.add(blade2);
+    // Jagged blade edges (톱니 칼날)
+    const bl = g.children.find(c => c.name === 'sword');
+    if (bl) bl.material = new THREE.MeshStandardMaterial({ color: 0x99aaaa, metalness: 0.85, roughness: 0.3 });
+    // Abs/muscle lines on chest
+    const absMat = new THREE.MeshStandardMaterial({ color: 0xc49565, roughness: 0.85 });
+    for (let ay = 0.35; ay < 0.55; ay += 0.06) {
+      const ab = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.015, 0.01), absMat);
+      ab.position.set(0, ay, 0.12); g.add(ab);
+    }
+  }
+});
+
+// 카나오 — 보라 머리 사이드테일, 나비 머리핀, 꽃의 호흡
+const kanao = createFighter({ skin: 0xd4a574, haori: 0xddddee, hair: 0x3a2255, pants: 0x2a2240, belt: 0x664488, scaleY: 0.88,
+  extraFn: (g) => {
+    // Side ponytail (right side)
+    const ponyMat = new THREE.MeshStandardMaterial({ color: 0x3a2255, roughness: 0.9 });
+    const pony = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.06), ponyMat);
+    pony.position.set(0.15, 0.65, -0.05); g.add(pony);
+    // Butterfly hair pin
+    const pinMat = new THREE.MeshStandardMaterial({ color: 0xff88cc, emissive: 0xcc5599, emissiveIntensity: 0.3 });
+    const pin = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.08), pinMat);
+    pin.position.set(0.12, 0.9, 0); pin.rotation.y = 0.3; g.add(pin);
+    // Flower breathing blade (pink tint)
+    const bl = g.children.find(c => c.name === 'sword');
+    if (bl) bl.material = new THREE.MeshStandardMaterial({ color: 0xddaacc, emissive: 0xcc88aa, emissiveIntensity: 0.2, metalness: 0.9 });
+  }
+});
+
 // 카이가쿠 — 검은 짧은 머리, 귀살대 탈영병, 검은 뇌 문양
 const kaigaku = createFighter({ skin: 0xccbbaa, haori: 0x1a1a2e, hair: 0x050505, pants: 0x111122, belt: 0x222233,
   extraFn: (g) => {
@@ -1287,7 +1345,7 @@ const muzan = createFighter({ skin: 0xeee8dd, haori: 0xf0f0f0, hair: 0x0a0a0a, p
 });
 
 // All characters map
-const characters = { giyu, akaza, shinobu, douma, muichiro, kokushibo_char: kokushibo, zenitsu_char: zenitsu, kaigaku, muzan_char: muzan };
+const characters = { giyu, akaza, shinobu, douma, muichiro, kokushibo_char: kokushibo, zenitsu_char: zenitsu, kaigaku, muzan_char: muzan, inosuke, kanao };
 
 // Character animation: position + rotation over time
 // ============ BREATHING EFFECTS ============
@@ -1322,6 +1380,8 @@ const butterflyEffects = createBreathEffect(0xcc55ff, 0xaa33dd, bfxCount);
 const iceEffects = createBreathEffect(0x88ddff, 0x55aadd, bfxCount);
 const fistEffects = createBreathEffect(0xff4488, 0xff2266, bfxCount);
 const tentacleEffects = createBreathEffect(0x880000, 0x660000, bfxCount);
+const beastEffects = createBreathEffect(0x88aa44, 0x668833, bfxCount); // green beast claws
+const flowerEffects = createBreathEffect(0xff88cc, 0xcc5599, bfxCount); // pink flower petals
 
 function showBreathEffects(effects, cx, cy, cz, time, radius, speed) {
   for (let i = 0; i < effects.length; i++) {
@@ -1344,7 +1404,7 @@ function hideBreathEffects(effects) {
 }
 
 function hideAllEffects() {
-  [waterEffects, moonEffects, mistEffects, butterflyEffects, iceEffects, fistEffects, tentacleEffects]
+  [waterEffects, moonEffects, mistEffects, butterflyEffects, iceEffects, fistEffects, tentacleEffects, beastEffects, flowerEffects]
     .forEach(hideBreathEffects);
 }
 
@@ -1459,6 +1519,29 @@ function animateCharacter(char, x, y, z, time, style) {
     char.rotation.y = Math.sin(time * 0.5) * 0.3;
     showBreathEffects(tentacleEffects, x, y, z, time, 2.5, 1);
 
+  } else if (style === 'beast_breath') {
+    // 짐승의 호흡 — wild dual-sword slashing, low stance
+    char.rotation.x = 0.15; // crouched
+    char.children.forEach(c => {
+      if (c.name === 'sword') c.rotation.z = 0.5 + Math.sin(time * 14) * 1.3;
+      if (c.name === 'sword2') c.rotation.z = -0.5 + Math.sin(time * 14 + Math.PI) * 1.3;
+      if (c.name === 'armR') c.rotation.z = Math.sin(time * 14) * 1.0;
+      if (c.name === 'armL') c.rotation.z = Math.sin(time * 14 + Math.PI) * 1.0;
+    });
+    char.position.y = y + Math.abs(Math.sin(time * 6)) * 0.25; // leaping
+    char.rotation.y = time * 3;
+    showBreathEffects(beastEffects, x, y, z, time, 1.5, 4);
+
+  } else if (style === 'flower_breath') {
+    // 꽃의 호흡 — elegant precise thrusts
+    char.children.forEach(c => {
+      if (c.name === 'sword') c.rotation.z = -0.3 + Math.sin(time * 10) * 0.6;
+      if (c.name === 'armR') c.rotation.z = -0.2 + Math.sin(time * 10) * 0.5;
+    });
+    char.rotation.y = time * 2;
+    char.position.y = y + Math.sin(time * 4) * 0.1;
+    showBreathEffects(flowerEffects, x, y, z, time, 1.0, 3);
+
   } else if (style === 'dash') {
     char.rotation.x = 0.4;
     char.children.forEach(c => {
@@ -1543,6 +1626,7 @@ const arenas = {
   kokushibo: createArena(0, 10, 0, 10, 10),
   zenitsu: createArena(0, -5, 0, 16, 8),
   muzan: createArena(0, 15, 0, 16, 16),
+  inosuke: createArena(0, -10, 0, 14, 12), // same location as douma (continuation)
 };
 
 const eventCharacters = {
@@ -2025,10 +2109,70 @@ const eventCharacters = {
       muzan.lookAt(tanjiro.position);
     }
   },
+  inosuke: {
+    chars: ['inosuke', 'kanao'],
+    arena: 'inosuke',
+    animate(t, loop) {
+      const bY = -10 + 0.1;
+      const W = SHAFT_W - 3;
+      douma.visible = false; inosuke.visible = false; kanao.visible = false;
+
+      // Fall (0-3) — Inosuke crashes through ceiling
+      if (loop < 3) {
+        const p = loop / 3;
+        const fY = 40 - p * 50;
+        animateCharacter(inosuke, Math.sin(loop * 3) * 0.8, fY, Math.cos(loop * 2) * 0.5, loop, 'fall');
+        // Kanao falls more gracefully nearby
+        animateCharacter(kanao, -0.5 + Math.sin(loop * 2) * 0.3, fY - 2, 0.5, loop, 'fall');
+        return;
+      }
+      // Land (3-4)
+      if (loop < 4) {
+        const bounce = Math.sin((loop - 3) * Math.PI) * 0.2;
+        animateCharacter(inosuke, 2, bY + bounce, 0, loop, 'idle');
+        animateCharacter(kanao, -1, bY + bounce * 0.3, 1, loop, 'idle');
+        return;
+      }
+      // Run (4-12) — charging toward Douma
+      if (loop < 12) {
+        const runT = loop - 4;
+        const runP = runT / 8;
+        const runX = W - runP * (W + 3);
+        animateCharacter(inosuke, runX, bY, Math.sin(runP * Math.PI * 2) * 3, loop, 'run');
+        inosuke.rotation.y = Math.atan2(-1, 0);
+        animateCharacter(kanao, runX - 2, bY, Math.sin(runP * Math.PI * 2) * 3 + 1, loop, 'run');
+        kanao.rotation.y = Math.atan2(-1, 0);
+        return;
+      }
+      // Douma appears (12-14)
+      if (loop < 14) {
+        const p = (loop - 12) / 2;
+        animateCharacter(inosuke, -3, bY, -1, loop, 'idle');
+        animateCharacter(kanao, -3, bY, 1, loop, 'idle');
+        douma.visible = true;
+        animateCharacter(douma, 4, bY, 0, loop, 'idle');
+        douma.scale.setScalar(p);
+        inosuke.lookAt(douma.position); kanao.lookAt(douma.position); douma.lookAt(inosuke.position);
+        return;
+      }
+      douma.visible = true; douma.scale.setScalar(1);
+
+      // Battle (14+) — Inosuke beast breath + Kanao flower breath vs Douma ice
+      hideAllEffects();
+      const ft = loop - 14;
+      const a = ft * 1.2;
+      // Inosuke: wild beast breathing, leaping attacks
+      animateCharacter(inosuke, Math.cos(a) * 3.5, bY, Math.sin(a) * 3.5, ft, 'beast_breath');
+      // Kanao: elegant flower breathing, flanking
+      animateCharacter(kanao, Math.cos(a + Math.PI * 0.7) * 3, bY, Math.sin(a + Math.PI * 0.7) * 3, ft, 'flower_breath');
+      // Douma: ice fan defense
+      animateCharacter(douma, Math.cos(a + Math.PI) * 1.5, bY, Math.sin(a + Math.PI) * 1.5, ft, 'ice_fan');
+      inosuke.lookAt(douma.position); kanao.lookAt(douma.position); douma.lookAt(inosuke.position);
+    }
+  },
   crow_eye: {
     chars: [],
     animate(t, loop) {
-      // No characters — pure crow POV
       hideAllCharacters();
     }
   },
@@ -2298,6 +2442,46 @@ const EVENT_TOURS = {
       } { // Pull far out
         const p = (loop-28)/7; const a = p*Math.PI*0.5;
         return { camPos: [Math.cos(a)*15,bY+15,Math.sin(a)*15], camLook: [0,bY,0], fov:55, roll:0, showT:p<0.4, speed:1 };
+      }
+    }
+  },
+
+  // ======= 이노스케 & 카나오 vs 도우마 =======
+  inosuke: {
+    duration: 40,
+    getPhase(loop) {
+      const bY = -10;
+      // Fall (0-3)
+      if (loop < 3) { const p = loop/3; const fY = 40-p*50;
+        return { camPos: [3,fY-3,4], camLook: [0,fY+1,0], fov:80, roll:p*0.15, showT:true, speed:4 };
+      }
+      // Land (3-4)
+      if (loop < 4) { const p = loop-3;
+        return { camPos: [3,bY+2,3], camLook: [0,bY+0.5,0], fov:70, roll:0, showT:true, speed:1 };
+      }
+      // Run (4-12)
+      if (loop < 12) {
+        const p = (loop-4)/8;
+        const runX = (SHAFT_W-3) - p*(SHAFT_W-3+3);
+        return { camPos: [runX-2,bY+1.5,3], camLook: [runX+2,bY+0.8,0], fov:75, roll:0, showT:true, speed:5 };
+      }
+      // Douma appears (12-14)
+      if (loop < 14) {
+        return { camPos: [0,bY+2,6], camLook: [0,bY+0.8,0], fov:55, roll:0, showT:true, speed:0.5 };
+      }
+      // Battle — orbit close (14+)
+      const ft = loop - 14;
+      if (ft < 8) { const a = (ft/8)*Math.PI*2;
+        return { camPos: [Math.cos(a)*5,bY+1.5,Math.sin(a)*5], camLook: [0,bY+0.8,0], fov:75, roll:Math.sin(a)*0.06, showT:true, speed:4 };
+      }
+      if (ft < 14) { const p = (ft-8)/6; const sh = Math.sin(p*Math.PI*6)*0.15;
+        return { camPos: [3+sh,bY+1,2+sh], camLook: [-0.5+sh,bY+0.7,-0.5], fov:85, roll:sh*0.04, showT:true, speed:5 };
+      }
+      if (ft < 20) { const p = (ft-14)/6; const a = p*Math.PI*0.8+Math.PI;
+        return { camPos: [Math.cos(a)*4,bY+0.6,Math.sin(a)*4], camLook: [0,bY+0.7,0], fov:65, roll:0, showT:true, speed:3 };
+      }
+      { const p = (ft-20)/6;
+        return { camPos: [p*4,bY+2+p*4,4+p*3], camLook: [0,bY+0.5,0], fov:60, roll:0, showT:true, speed:1.5 };
       }
     }
   },
