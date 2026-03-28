@@ -2389,9 +2389,14 @@ function getTanjiroTransform(t) {
   return { x:last.pos[0], y:last.pos[1], z:last.pos[2], rx:last.rot[0], ry:last.rot[1], rz:last.rot[2] };
 }
 
+let playbackSpeed = 1;
+document.getElementById('speed-select').addEventListener('change', (e) => {
+  playbackSpeed = parseFloat(e.target.value);
+});
+
 function updateAutoTour(dt) {
   if (!autoTour) return;
-  tourTime += dt;
+  tourTime += dt * playbackSpeed;
   const phase = getTourPhase(tourTime);
   const tour = EVENT_TOURS[currentEvent];
   const loop = tourTime % tour.duration;
@@ -2735,12 +2740,12 @@ function toggleMusic() {
       });
     }
     if (musicGain) musicGain.gain.value = 0.3;
-    btn.textContent = '♪ Music ON';
+    btn.textContent = '♪ ON';
     btn.style.borderColor = '#ffaa55';
   } else {
     musicPlaying = false;
     if (musicGain) musicGain.gain.value = 0;
-    btn.textContent = '♪ Music OFF';
+    btn.textContent = '♪ OFF';
     btn.style.borderColor = '#ff662266';
   }
 }
